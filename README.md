@@ -1,4 +1,9 @@
 
+HMIPv6 RFC: 
+-----------
+http://www.ietf.org/rfc/rfc4140.txt
+http://www.faqs.org/ftp/rfc/pdf/rfc4140.txt.pdf
+
 Project ToDo Items:
 -------------------
 <table>
