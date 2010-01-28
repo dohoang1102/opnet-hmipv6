@@ -1,8 +1,30 @@
 
-TODO:
-=====
-1. Setup MAP Advertisements from AP
-2. Write MAP Advert processing in Mobile Node
-3. Setup RCoA Generation from Map Address in Mobile Node
-4. Debug
+Project ToDo Items:
+-------------------
+<table>
+  <tr>
+    <th>ID</th><th>Task</th><th>Status</th>
+  </tr>
+  <tr>
+    <td>1</td>
+    <td>Setup MAP Advertisements from AP</td>
+    <td>Working</td>
+  </tr>
+  <tr>
+    <td>2</td>
+    <td>Write MAP Advert processing in Mobile Node</td>
+    <td>Hold</td>
+  </tr>
+  <tr>
+    <td>3</td>
+    <td>Setup RCoA Generation from Map Address in Mobile Node</td>
+    <td>Hold</td>
+  </tr>
+  <tr>
+    <td>4</td>
+    <td>Debug Simulation</td>
+    <td>Hold</td>
+  </tr
+</table>
+
 
