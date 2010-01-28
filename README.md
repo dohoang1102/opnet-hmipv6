@@ -1,8 +1,8 @@
 
 HMIPv6 RFC: 
 -----------
-http://www.ietf.org/rfc/rfc4140.txt
-http://www.faqs.org/ftp/rfc/pdf/rfc4140.txt.pdf
+[TXT][1]
+[PDF][2]
 
 Project ToDo Items:
 -------------------
@@ -32,4 +32,7 @@ Project ToDo Items:
   </tr
 </table>
 
+
+[1]: http://www.ietf.org/rfc/rfc4140.txt "RFC 4140"
+[2]: http://www.faqs.org/ftp/rfc/pdf/rfc4140.txt.pdf "RFC 4141 PDF
 
