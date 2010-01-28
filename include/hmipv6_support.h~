@@ -35,8 +35,6 @@
 EXTERN_C_BEGIN
 /********* Binding tables definitions. **********/
 
-typedef InetT_Address address_t;
-
 /* Binding Cache Table used by HA and CN. */
 typedef struct 
 {
