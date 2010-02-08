@@ -4,7 +4,7 @@
 
 
 /* This variable carries the header into the object file */
-const char HMIPv6_MN_NEW_pr_cpp [] = "MIL_3_Tfile_Hdr_ 145A 30A modeler 7 4B5A3FCB 4B5A3FCB 1 planet12 Student 0 0 none none 0 0 none 0 0 0 0 0 0 0 0 1e80 8                                                                                                                                                                                                                                                                                                                                                                                                         ";
+const char HMIPv6_MN_NEW_pr_cpp [] = "MIL_3_Tfile_Hdr_ 145A 30A op_runsim 7 4B6E339F 4B6E339F 1 planet12 Student 0 0 none none 0 0 none 0 0 0 0 0 0 0 0 1e80 8                                                                                                                                                                                                                                                                                                                                                                                                       ";
 #include <string.h>
 
 
@@ -18,7 +18,7 @@ const char HMIPv6_MN_NEW_pr_cpp [] = "MIL_3_Tfile_Hdr_ 145A 30A modeler 7 4B5A3F
 
 #include <opnet.h>
 #include <hmipv6_defs.h>
-#include <hmipv6_defs.h>
+#include <hmipv6_common.h>
 #include <hmipv6_support.h>
 #include <ip_rte_v4.h>
 #include <ip_rte_support.h>
@@ -47,6 +47,54 @@ extern int mobility_msg_size_in_bits[MIPV6C_MOB_MSG_COUNT];
 
 /* Define the packet source index for the output stream */
 #define OUT_STRM  1
+
+#define HEX_FMT   16
+
+/**
+ * Make sure the given packet is the correct format
+ */
+bool correct_packet_fmt( Packet* packet );
+
+/**
+ * Inspect the given packet, is it a MAP Advertisement?
+ *
+ * @NOTE!: For simplicity we use the  Mipv6C_Bind_Ref_Req header type
+ * to represent a MAP Advertisement packet. The home_address
+ * will hold the MAP Address.
+ *
+ * @param packet - The packet to inspect.
+ * @return true if MAP Advert, false if not.
+ */
+bool is_map_advert( Packet* packet );
+
+/**
+ * Obtain the MAP Address from the 
+ */
+address_t get_map_address( Packet* packet );
+
+/**
+ * Generate a regional care of address.
+ */
+address_t generate_rcoa( void );
+
+/**
+ * Obtain the current ip_address of the mobile node
+ */
+address_t get_lcoa( void );
+
+/**
+ * Determine if our ip_address had changed
+ */
+bool has_lcoa_changed( void );
+
+/** 
+ * This function creates and sends an IPv6 datagram 
+ * that carries a Binding Update MIPv6 message.    
+ *
+ * @param dest_addr - Destination Address
+ */
+static void
+bu_msg_send( address_t dest_addr, address_t suggestedRCoA );
 
 /* End of Header Block */
 
@@ -135,31 +183,18 @@ VosT_Obtype HMIPv6_MN_NEW_state::obtype = (VosT_Obtype)OPC_NIL;
 enum { _op_block_origin = __LINE__ + 2};
 #endif
 
-/**
- * Make sure the given packet is the correct format
- */
-bool correct_packet_fmt( Packet* packet ) {
-
-  char format[100];
-
-	FIN( correct_packet_fmt( packet ) );
-
-  op_pk_format( packet, format );
-
-  if ( strcmp( "ip_dgram_v4", format ) == 0 ) {
-    FRET( true );
-  } else {
-    FRET( false );
-  }
-}
 
 /**
- * Inspect the given packet, is it a Binding Ack?
+ * Inspect the given packet, is it a MAP Advertisement?
+ *
+ * @NOTE!: For simplicity we use the  Mipv6C_Bind_Ref_Req header type
+ * to represent a MAP Advertisement packet. The home_address
+ * will hold the MAP Address.
  *
  * @param packet - The packet to inspect.
- * @return true if BAck, false if not.
+ * @return true if MAP Advert, false if not.
  */
-bool is_bind_ack( Packet* packet ) { 
+bool is_map_advert( Packet* packet ) { 
 
   List* list;
   IpT_Dgram_Fields* fields;
@@ -171,15 +206,15 @@ bool is_bind_ack( Packet* packet ) {
 
     fields = ip_dgram_fields_get( packet );
 
-    /* check the  extionsion types */
+    /* check the  extension types */
     if ( IpC_Procotol_Mobility_Ext_Hdr == fields->protocol ) {
 
       /* Grab the mobility headers */
       list = ipv6_extension_header_list_get( fields );
       info = (Ipv6T_Mobility_Hdr_Info*) op_prg_list_access( list, OPC_LISTPOS_HEAD );
 
-      if ( Mipv6C_Bind_Ack == info->mh_type ) {
-        /* This is obviously a binding update */
+      /* This is a MAP advertisement */
+      if ( Mipv6C_Bind_Ref_Req == info->mh_type ) {
         FRET( true );
       }
     }
@@ -188,14 +223,54 @@ bool is_bind_ack( Packet* packet ) {
 }
 
 /**
+ * Obtain the MAP Address from the 
+ */
+address_t get_map_address( Packet* packet ) { 
+  List* list;
+  IpT_Dgram_Fields* fields;
+  Ipv6T_Mobility_Hdr_Info* header;
+
+	FIN( is_bind_ack( packet ) );
+
+  fields = ip_dgram_fields_get( packet );
+
+  /* Grab the mobility headers */
+  list = ipv6_extension_header_list_get( fields );
+  header = (Ipv6T_Mobility_Hdr_Info*) op_prg_list_access( list, OPC_LISTPOS_HEAD );
+
+  FRET( inet_address_copy( header->msg_data.bind_update.home_address ) );
+}
+
+/**
  * Generate a regional care of address.
  */
 address_t generate_rcoa( void ) {
   address_t RCoA;
+  char buffer[33];
+  std::string map_addr;
+  unsigned int rand_int;
+  PrgT_Random_Gen* my_rng;
 
   FIN( get_lcoa( void ) );
 
-  RCoA = InetI_Invalid_Addr;
+  /* Create a new random number generator */
+  my_rng = op_prg_random_gen_create( 99 );
+
+  // Generate a random integer in the interval [0000,FFFF] 
+  // The largest and smallest HEX Octet
+  rand_int = ( op_prg_random_integer_gen( my_rng ) % 0xFFFF );
+  /* Destroy the random number generator */
+  op_prg_random_gen_destroy( my_rng );
+
+  /* Build the RCoA string */
+  map_addr = addressToString( map_address );
+  map_addr.append(":");
+  _itoa( rand_int, buffer, HEX_FMT );
+  map_addr.append( buffer );
+
+  /* Convert the generated string to address */
+  RCoA = stringToAddress( map_addr ); 
+
 
   FRET( RCoA );
 }
@@ -229,40 +304,6 @@ bool has_lcoa_changed( void ) {
   FRET( true );
 }
 
-/**
- * Obtain the source address from the packet 
- */
-address_t src_address( Packet* packet ) { 
-
-  address_t source;
-  IpT_Dgram_Fields* fields;
-
-	FIN( src_address( packet ) );
-
-	op_pk_nfd_access( packet, "fields", &fields );
-
-  source = inet_address_copy( fields->src_addr );
-
-  FRET( source );
-}
-
-/**
- * Obtain the destination address from the packet 
- */
-address_t dest_address( Packet* packet ) { 
-
-  address_t destination;
-  IpT_Dgram_Fields* fields;
-  
-	FIN( dest_address( packet ) );
-
-	op_pk_nfd_access( packet, "fields", &fields );
-
-  destination = inet_address_copy( fields->dest_addr );
-
-  FRET( destination );
-}
-
 /** 
  * This function creates and sends an IPv6 datagram 
  * that carries a Binding Update MIPv6 message.    
@@ -280,7 +321,7 @@ bu_msg_send( address_t dest_addr, address_t suggestedRCoA ) {
   FIN( bu_msg_send( dest_addr, suggestedRCoA ) );
 
   /* Create the IP datagram. */
-  packet = ip_dgram_create( );
+  packet = ip_dgram_create();
   
   /* Get the size contributed by the mobility header. */
   ext_hdr_len = (OpT_Packet_Size) mobility_msg_size_in_bits[BIND_UPDATE];
@@ -292,8 +333,8 @@ bu_msg_send( address_t dest_addr, address_t suggestedRCoA ) {
   /* Set the source address to be the global address of interface. */
   
   /* The ha iface ptr must be obtained from the ha iface table. */  
-  dgram->src_addr     = inet_address_copy( lcoa );
-  dgram->src_internal_addr  = inet_rtab_addr_convert( dgram->src_addr );
+  dgram->src_addr          = inet_address_copy( lcoa );
+  dgram->src_internal_addr = inet_rtab_addr_convert( dgram->src_addr );
   
   /* Set the destination address (MN). */  
   dgram->dest_addr          = inet_address_copy( dest_addr );
@@ -409,7 +450,7 @@ HMIPv6_MN_NEW_state::HMIPv6_MN_NEW (OP_SIM_CONTEXT_ARG_OPT)
 		{
 
 
-		FSM_ENTER_NO_VARS ("HMIPv6_MN_NEW")
+		FSM_ENTER ("HMIPv6_MN_NEW")
 
 		FSM_BLOCK_SWITCH
 			{
@@ -497,21 +538,40 @@ HMIPv6_MN_NEW_state::HMIPv6_MN_NEW (OP_SIM_CONTEXT_ARG_OPT)
 			FSM_STATE_ENTER_UNFORCED (2, "idle", state2_enter_exec, "HMIPv6_MN_NEW [idle enter execs]")
 				FSM_PROFILE_SECTION_IN ("HMIPv6_MN_NEW [idle enter execs]", state2_enter_exec)
 				{
+				
+				/* Check if we our link care of address has changed */
 				if ( has_lcoa_changed() ) {
+				
+				  /* It has changed, change state so we can send a Bind Update. */
 				  address_changed = true;
-				} else if ( op_intrpt_type() == OPC_INTRPT_STRM ) {
 				
-				  currpacket = op_pk_get( IN_STRM );
+				} else {
 				
-				  /* Make sure the packet is sound */
-				  if ( (NULL != currpacket) && correct_packet_fmt( currpacket ) ) {
+				  /* Handle the interrupt appropriately */
+				  switch( op_intrpt_type() ) {
+				    
+				    /* We have a incoming packet. */
+				    case OPC_INTRPT_STRM: {
 				
-				    /* Check if the packet is a binding acknowledgment */
-				    if ( is_bind_ack( currpacket ) ) {
-				      map_address = src_address( currpacket );
+				      currpacket = op_pk_get( IN_STRM );
+				
+				      /* Make sure the packet is sound */
+				      if ( (NULL != currpacket) && correct_packet_fmt( currpacket ) ) {
+				
+				        /* Check if the packet is a MAP Advertisement */
+				        if ( is_map_advert( currpacket ) ) {
+				          /* Snag that address ! */
+				          map_address = get_map_address( currpacket );
+				        }
+				
+				      } 
+				      op_pk_destroy( currpacket );
+				      break;
 				    }
-				  } 
-				  op_pk_destroy( currpacket );
+				
+				    default:
+				      break;
+				  }
 				}
 				}
 				FSM_PROFILE_SECTION_OUT (state2_enter_exec)
@@ -525,7 +585,17 @@ HMIPv6_MN_NEW_state::HMIPv6_MN_NEW (OP_SIM_CONTEXT_ARG_OPT)
 
 
 			/** state (idle) transition processing **/
-			FSM_TRANSIT_ONLY ((ADDRESS_CHANGED), 3, state3_enter_exec, ;, idle, "ADDRESS_CHANGED", "", "idle", "SEND BU", "tr_17", "HMIPv6_MN_NEW [idle -> SEND BU : ADDRESS_CHANGED / ]")
+			FSM_PROFILE_SECTION_IN ("HMIPv6_MN_NEW [idle trans conditions]", state2_trans_conds)
+			FSM_INIT_COND (ADDRESS_CHANGED)
+			FSM_DFLT_COND
+			FSM_TEST_LOGIC ("idle")
+			FSM_PROFILE_SECTION_OUT (state2_trans_conds)
+
+			FSM_TRANSIT_SWITCH
+				{
+				FSM_CASE_TRANSIT (0, 3, state3_enter_exec, ;, "ADDRESS_CHANGED", "", "idle", "SEND BU", "tr_17", "HMIPv6_MN_NEW [idle -> SEND BU : ADDRESS_CHANGED / ]")
+				FSM_CASE_TRANSIT (1, 2, state2_enter_exec, ;, "default", "", "idle", "idle", "tr_19", "HMIPv6_MN_NEW [idle -> idle : default / ]")
+				}
 				/*---------------------------------------------------------*/
 
 

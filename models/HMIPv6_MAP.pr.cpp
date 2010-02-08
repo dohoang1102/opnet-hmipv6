@@ -4,7 +4,7 @@
 
 
 /* This variable carries the header into the object file */
-const char HMIPv6_MAP_pr_cpp [] = "MIL_3_Tfile_Hdr_ 145A 30A modeler 7 4B5A3F6E 4B5A3F6E 1 planet12 Student 0 0 none none 0 0 none 0 0 0 0 0 0 0 0 1e80 8                                                                                                                                                                                                                                                                                                                                                                                                         ";
+const char HMIPv6_MAP_pr_cpp [] = "MIL_3_Tfile_Hdr_ 145A 30A op_runsim 7 4B6E339D 4B6E339D 1 planet12 Student 0 0 none none 0 0 none 0 0 0 0 0 0 0 0 1e80 8                                                                                                                                                                                                                                                                                                                                                                                                       ";
 #include <string.h>
 
 
@@ -19,6 +19,7 @@ const char HMIPv6_MAP_pr_cpp [] = "MIL_3_Tfile_Hdr_ 145A 30A modeler 7 4B5A3F6E 
 #include <opnet.h>
 #include <hmipv6_defs.h>
 #include <hmipv6_support.h>
+#include <hmipv6_common.h>
 #include <ip_rte_v4.h>
 #include <ip_rte_support.h>
 #include <ipv6_extension_headers_defs.h>
@@ -35,8 +36,8 @@ const char HMIPv6_MAP_pr_cpp [] = "MIL_3_Tfile_Hdr_ 145A 30A modeler 7 4B5A3F6E 
 using std::string;
 using std::map;
 
-extern int mobility_msg_size_in_bits[MIPV6C_MOB_MSG_COUNT];
-
+//extern int mobility_msg_size_in_bits[MIPV6C_MOB_MSG_COUNT];
+int	mobility_msg_size_in_bits [MIPV6C_MOB_MSG_COUNT] = { 64, 128, 128, 192, 192, 128, 128, 192 };
 /* Make sure lower modules have registered them selves properly */
 #define SELF_NOTIFY  ( op_intrpt_type() == OPC_INTRPT_SELF )
 
@@ -74,22 +75,6 @@ bool correct_packet_fmt( Packet* packet );
 Packet* set_destination( Packet* packet, address_t destination );
 
 /**
- * Utility functions 
- */
-address_t stringToAddress( std::string );
-std::string addressToString( address_t address );
-
-/**
- * Obtain the source address from the packet 
- */
-address_t dest_address( Packet* packet );
-
-/**
- * Obtain the source address from the packet 
- */
-address_t src_address( Packet* packet );
-
-/**
  * Obtain the regional care of address from the packet.
  */
 address_t get_RCoA( Packet* packet );
@@ -97,15 +82,13 @@ address_t get_RCoA( Packet* packet );
 /**
  * Send a binding acknowledgment to destination.
  */
-void send_BAck( address_t destination );
+void send_BAck( address_t destination, address_t RCoA  );
  
-
 /**
  * This function removes and IPv6 in IPv6 encapsulated packet.
  * It is used at the end point of a HMIPv6 tunnel. 
  */ 
 void decapsulate_pkt( Packet** packet );
-
 
 /** 
  * Encapsulates IPv6 in IPv6 packets to be transported by a MIPv6 tunnel. 
@@ -265,24 +248,6 @@ bool cache_has_lcoa( std::string address ) {
 }
 
 /**
- * Make sure the given packet is the correct format
- */
-bool correct_packet_fmt( Packet* packet ) {
-
-  char format[100];
-
-	FIN( correct_packet_fmt( packet ) );
-
-  op_pk_format( packet, format );
-
-  if ( strcmp( "ip_dgram_v4", format ) == 0 ) {
-    FRET( true );
-  } else {
-    FRET( false );
-  }
-}
-
-/**
  * Set the destination of a packet to new value.
  */
 Packet* set_source( Packet* packet, std::string src_str ) {
@@ -327,63 +292,6 @@ Packet* set_destination( Packet* packet, std::string dest_str ) {
   FRET( packet );
 }
 
-address_t stringToAddress( std::string dest_str ) {
-  
-  address_t address;
-
-	FIN( stringToAddress( address ) );
-
-  address = inet_address_create( dest_str.c_str(), InetC_Addr_Family_v6 );
-
-  FRET( address );
-}
-
-
-std::string addressToString( address_t address ) {
-  char buffer[100];
-
-	FIN( addressToString( address ) );
-
-  inet_address_print( buffer, address );
-
-  std::string address_string( buffer );
-
-  FRET( address_string );
-}
-
-/**
- * Obtain the destination address from the packet 
- */
-address_t dest_address( Packet* packet ) { 
-
-  address_t destination;
-  IpT_Dgram_Fields* fields;
-  
-	FIN( dest_address( packet ) );
-
-	op_pk_nfd_access( packet, "fields", &fields );
-
-  destination = inet_address_copy( fields->dest_addr );
-
-  FRET( destination );
-}
-
-/**
- * Obtain the source address from the packet 
- */
-address_t src_address( Packet* packet ) { 
-
-  address_t source;
-  IpT_Dgram_Fields* fields;
-
-	FIN( src_address( packet ) );
-
-	op_pk_nfd_access( packet, "fields", &fields );
-
-  source = inet_address_copy( fields->src_addr );
-
-  FRET( source );
-}
 
 /**
  * Obtain the regional care of address from the packet.
@@ -727,46 +635,21 @@ HMIPv6_MAP_state::HMIPv6_MAP (OP_SIM_CONTEXT_ARG_OPT)
 
 
 			/** state (init) transition processing **/
-			FSM_TRANSIT_ONLY ((SELF_NOTIFY), 1, state1_enter_exec, ;, init, "SELF_NOTIFY", "", "init", "init2", "tr_0", "HMIPv6_MAP [init -> init2 : SELF_NOTIFY / ]")
-				/*---------------------------------------------------------*/
-
-
-
-			/** state (init2) enter executives **/
-			FSM_STATE_ENTER_UNFORCED (1, "init2", state1_enter_exec, "HMIPv6_MAP [init2 enter execs]")
-				FSM_PROFILE_SECTION_IN ("HMIPv6_MAP [init2 enter execs]", state1_enter_exec)
-				{
-				
-				/**
-				 * Obtain handles to lower layer modules 
-				 */
-				}
-				FSM_PROFILE_SECTION_OUT (state1_enter_exec)
-
-			/** blocking after enter executives of unforced state. **/
-			FSM_EXIT (3,"HMIPv6_MAP")
-
-
-			/** state (init2) exit executives **/
-			FSM_STATE_EXIT_UNFORCED (1, "init2", "HMIPv6_MAP [init2 exit execs]")
-
-
-			/** state (init2) transition processing **/
-			FSM_TRANSIT_ONLY ((SELF_NOTIFY), 2, state2_enter_exec, ;, init2, "SELF_NOTIFY", "", "init2", "idle", "tr_7", "HMIPv6_MAP [init2 -> idle : SELF_NOTIFY / ]")
+			FSM_TRANSIT_ONLY ((SELF_NOTIFY), 1, state1_enter_exec, ;, init, "SELF_NOTIFY", "", "init", "idle", "tr_16", "HMIPv6_MAP [init -> idle : SELF_NOTIFY / ]")
 				/*---------------------------------------------------------*/
 
 
 
 			/** state (idle) enter executives **/
-			FSM_STATE_ENTER_UNFORCED (2, "idle", state2_enter_exec, "HMIPv6_MAP [idle enter execs]")
+			FSM_STATE_ENTER_UNFORCED (1, "idle", state1_enter_exec, "HMIPv6_MAP [idle enter execs]")
 
 			/** blocking after enter executives of unforced state. **/
-			FSM_EXIT (5,"HMIPv6_MAP")
+			FSM_EXIT (3,"HMIPv6_MAP")
 
 
 			/** state (idle) exit executives **/
-			FSM_STATE_EXIT_UNFORCED (2, "idle", "HMIPv6_MAP [idle exit execs]")
-				FSM_PROFILE_SECTION_IN ("HMIPv6_MAP [idle exit execs]", state2_exit_exec)
+			FSM_STATE_EXIT_UNFORCED (1, "idle", "HMIPv6_MAP [idle exit execs]")
+				FSM_PROFILE_SECTION_IN ("HMIPv6_MAP [idle exit execs]", state1_exit_exec)
 				{
 				/***
 				 * Sate Variables:
@@ -806,30 +689,32 @@ HMIPv6_MAP_state::HMIPv6_MAP (OP_SIM_CONTEXT_ARG_OPT)
 				    }
 				}
 				}
-				FSM_PROFILE_SECTION_OUT (state2_exit_exec)
+				FSM_PROFILE_SECTION_OUT (state1_exit_exec)
 
 
 			/** state (idle) transition processing **/
-			FSM_PROFILE_SECTION_IN ("HMIPv6_MAP [idle trans conditions]", state2_trans_conds)
+			FSM_PROFILE_SECTION_IN ("HMIPv6_MAP [idle trans conditions]", state1_trans_conds)
 			FSM_INIT_COND (BU_PACKET)
-			FSM_TEST_COND (TUNNEL_IN)
 			FSM_TEST_COND (TUNNEL_OUT)
+			FSM_TEST_COND (TUNNEL_IN)
+			FSM_DFLT_COND
 			FSM_TEST_LOGIC ("idle")
-			FSM_PROFILE_SECTION_OUT (state2_trans_conds)
+			FSM_PROFILE_SECTION_OUT (state1_trans_conds)
 
 			FSM_TRANSIT_SWITCH
 				{
-				FSM_CASE_TRANSIT (0, 3, state3_enter_exec, ;, "BU_PACKET", "", "idle", "BU", "tr_3", "HMIPv6_MAP [idle -> BU : BU_PACKET / ]")
-				FSM_CASE_TRANSIT (1, 4, state4_enter_exec, ;, "TUNNEL_IN", "", "idle", "TNL_IN", "tr_4", "HMIPv6_MAP [idle -> TNL_IN : TUNNEL_IN / ]")
-				FSM_CASE_TRANSIT (2, 5, state5_enter_exec, ;, "TUNNEL_OUT", "", "idle", "TNL_OUT", "tr_14", "HMIPv6_MAP [idle -> TNL_OUT : TUNNEL_OUT / ]")
+				FSM_CASE_TRANSIT (0, 2, state2_enter_exec, ;, "BU_PACKET", "", "idle", "BU", "tr_3", "HMIPv6_MAP [idle -> BU : BU_PACKET / ]")
+				FSM_CASE_TRANSIT (1, 4, state4_enter_exec, ;, "TUNNEL_OUT", "", "idle", "TNL_OUT", "tr_14", "HMIPv6_MAP [idle -> TNL_OUT : TUNNEL_OUT / ]")
+				FSM_CASE_TRANSIT (2, 3, state3_enter_exec, ;, "TUNNEL_IN", "", "idle", "TNL_IN", "tr_20", "HMIPv6_MAP [idle -> TNL_IN : TUNNEL_IN / ]")
+				FSM_CASE_TRANSIT (3, 1, state1_enter_exec, ;, "default", "", "idle", "idle", "tr_24", "HMIPv6_MAP [idle -> idle : default / ]")
 				}
 				/*---------------------------------------------------------*/
 
 
 
 			/** state (BU) enter executives **/
-			FSM_STATE_ENTER_FORCED (3, "BU", state3_enter_exec, "HMIPv6_MAP [BU enter execs]")
-				FSM_PROFILE_SECTION_IN ("HMIPv6_MAP [BU enter execs]", state3_enter_exec)
+			FSM_STATE_ENTER_FORCED (2, "BU", state2_enter_exec, "HMIPv6_MAP [BU enter execs]")
+				FSM_PROFILE_SECTION_IN ("HMIPv6_MAP [BU enter execs]", state2_enter_exec)
 				{
 				
 				/**
@@ -845,31 +730,31 @@ HMIPv6_MAP_state::HMIPv6_MAP (OP_SIM_CONTEXT_ARG_OPT)
 				bind_cache[RCoA] = LCoA;
 				
 				/* Send a binding acknoledgement to the MN */
-				send_BAck( stringToAddress( LCoA ) );
+				send_BAck( stringToAddress( LCoA ), stringToAddress( RCoA ) );
 				
 				op_pk_destroy( currpacket );
 				}
-				FSM_PROFILE_SECTION_OUT (state3_enter_exec)
+				FSM_PROFILE_SECTION_OUT (state2_enter_exec)
 
 			/** state (BU) exit executives **/
-			FSM_STATE_EXIT_FORCED (3, "BU", "HMIPv6_MAP [BU exit execs]")
-				FSM_PROFILE_SECTION_IN ("HMIPv6_MAP [BU exit execs]", state3_exit_exec)
+			FSM_STATE_EXIT_FORCED (2, "BU", "HMIPv6_MAP [BU exit execs]")
+				FSM_PROFILE_SECTION_IN ("HMIPv6_MAP [BU exit execs]", state2_exit_exec)
 				{
 				// Reset our state back to false
 				bu_packet = false;
 				}
-				FSM_PROFILE_SECTION_OUT (state3_exit_exec)
+				FSM_PROFILE_SECTION_OUT (state2_exit_exec)
 
 
 			/** state (BU) transition processing **/
-			FSM_TRANSIT_FORCE (2, state2_enter_exec, ;, "default", "", "BU", "idle", "tr_2", "HMIPv6_MAP [BU -> idle : default / ]")
+			FSM_TRANSIT_FORCE (1, state1_enter_exec, ;, "default", "", "BU", "idle", "tr_2", "HMIPv6_MAP [BU -> idle : default / ]")
 				/*---------------------------------------------------------*/
 
 
 
 			/** state (TNL_IN) enter executives **/
-			FSM_STATE_ENTER_FORCED (4, "TNL_IN", state4_enter_exec, "HMIPv6_MAP [TNL_IN enter execs]")
-				FSM_PROFILE_SECTION_IN ("HMIPv6_MAP [TNL_IN enter execs]", state4_enter_exec)
+			FSM_STATE_ENTER_FORCED (3, "TNL_IN", state3_enter_exec, "HMIPv6_MAP [TNL_IN enter execs]")
+				FSM_PROFILE_SECTION_IN ("HMIPv6_MAP [TNL_IN enter execs]", state3_enter_exec)
 				{
 				/**
 				 * Sate Variables:
@@ -891,27 +776,27 @@ HMIPv6_MAP_state::HMIPv6_MAP (OP_SIM_CONTEXT_ARG_OPT)
 				/* Send the currpacket back to the IP module */
 				op_pk_send( currpacket, OUT_STRM );
 				}
-				FSM_PROFILE_SECTION_OUT (state4_enter_exec)
+				FSM_PROFILE_SECTION_OUT (state3_enter_exec)
 
 			/** state (TNL_IN) exit executives **/
-			FSM_STATE_EXIT_FORCED (4, "TNL_IN", "HMIPv6_MAP [TNL_IN exit execs]")
-				FSM_PROFILE_SECTION_IN ("HMIPv6_MAP [TNL_IN exit execs]", state4_exit_exec)
+			FSM_STATE_EXIT_FORCED (3, "TNL_IN", "HMIPv6_MAP [TNL_IN exit execs]")
+				FSM_PROFILE_SECTION_IN ("HMIPv6_MAP [TNL_IN exit execs]", state3_exit_exec)
 				{
 				// Reset our state back to false
 				tunnelin = false;
 				}
-				FSM_PROFILE_SECTION_OUT (state4_exit_exec)
+				FSM_PROFILE_SECTION_OUT (state3_exit_exec)
 
 
 			/** state (TNL_IN) transition processing **/
-			FSM_TRANSIT_FORCE (2, state2_enter_exec, ;, "default", "", "TNL_IN", "idle", "tr_6", "HMIPv6_MAP [TNL_IN -> idle : default / ]")
+			FSM_TRANSIT_FORCE (1, state1_enter_exec, ;, "default", "", "TNL_IN", "idle", "tr_21", "HMIPv6_MAP [TNL_IN -> idle : default / ]")
 				/*---------------------------------------------------------*/
 
 
 
 			/** state (TNL_OUT) enter executives **/
-			FSM_STATE_ENTER_FORCED (5, "TNL_OUT", state5_enter_exec, "HMIPv6_MAP [TNL_OUT enter execs]")
-				FSM_PROFILE_SECTION_IN ("HMIPv6_MAP [TNL_OUT enter execs]", state5_enter_exec)
+			FSM_STATE_ENTER_FORCED (4, "TNL_OUT", state4_enter_exec, "HMIPv6_MAP [TNL_OUT enter execs]")
+				FSM_PROFILE_SECTION_IN ("HMIPv6_MAP [TNL_OUT enter execs]", state4_enter_exec)
 				{
 				/**
 				 * Sate Variables:
@@ -942,20 +827,20 @@ HMIPv6_MAP_state::HMIPv6_MAP (OP_SIM_CONTEXT_ARG_OPT)
 				/* Send the currpacket back to the IP module */
 				op_pk_send( currpacket, OUT_STRM );
 				}
-				FSM_PROFILE_SECTION_OUT (state5_enter_exec)
+				FSM_PROFILE_SECTION_OUT (state4_enter_exec)
 
 			/** state (TNL_OUT) exit executives **/
-			FSM_STATE_EXIT_FORCED (5, "TNL_OUT", "HMIPv6_MAP [TNL_OUT exit execs]")
-				FSM_PROFILE_SECTION_IN ("HMIPv6_MAP [TNL_OUT exit execs]", state5_exit_exec)
+			FSM_STATE_EXIT_FORCED (4, "TNL_OUT", "HMIPv6_MAP [TNL_OUT exit execs]")
+				FSM_PROFILE_SECTION_IN ("HMIPv6_MAP [TNL_OUT exit execs]", state4_exit_exec)
 				{
 				// Reset state back to false
 				tunnelout = false;
 				}
-				FSM_PROFILE_SECTION_OUT (state5_exit_exec)
+				FSM_PROFILE_SECTION_OUT (state4_exit_exec)
 
 
 			/** state (TNL_OUT) transition processing **/
-			FSM_TRANSIT_FORCE (2, state2_enter_exec, ;, "default", "", "TNL_OUT", "idle", "tr_15", "HMIPv6_MAP [TNL_OUT -> idle : default / ]")
+			FSM_TRANSIT_FORCE (1, state1_enter_exec, ;, "default", "", "TNL_OUT", "idle", "tr_15", "HMIPv6_MAP [TNL_OUT -> idle : default / ]")
 				/*---------------------------------------------------------*/
 
 
