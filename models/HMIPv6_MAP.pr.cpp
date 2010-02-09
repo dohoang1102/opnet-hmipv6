@@ -4,7 +4,7 @@
 
 
 /* This variable carries the header into the object file */
-const char HMIPv6_MAP_pr_cpp [] = "MIL_3_Tfile_Hdr_ 145A 30A op_runsim 7 4B6E339D 4B6E339D 1 planet12 Student 0 0 none none 0 0 none 0 0 0 0 0 0 0 0 1e80 8                                                                                                                                                                                                                                                                                                                                                                                                       ";
+const char HMIPv6_MAP_pr_cpp [] = "MIL_3_Tfile_Hdr_ 145A 30A modeler 7 4B70C843 4B70C843 1 planet12 Student 0 0 none none 0 0 none 0 0 0 0 0 0 0 0 1e80 8                                                                                                                                                                                                                                                                                                                                                                                                         ";
 #include <string.h>
 
 
@@ -38,6 +38,7 @@ using std::map;
 
 //extern int mobility_msg_size_in_bits[MIPV6C_MOB_MSG_COUNT];
 int	mobility_msg_size_in_bits [MIPV6C_MOB_MSG_COUNT] = { 64, 128, 128, 192, 192, 128, 128, 192 };
+
 /* Make sure lower modules have registered them selves properly */
 #define SELF_NOTIFY  ( op_intrpt_type() == OPC_INTRPT_SELF )
 
@@ -219,6 +220,7 @@ bool is_bind_update( Packet* packet ) {
 
       if ( Mipv6C_Bind_Update == info->mh_type ) {
         /* This is obviously a binding update */
+        puts( "HMIPv6 MAP: Got Binding Update" );
         FRET( true );
       }
     }
@@ -241,9 +243,11 @@ bool cache_has_lcoa( std::string address ) {
 
   for( i = bind_cache.begin(); i != bind_cache.end(); i++ ) {
     if ( address.compare( i->second ) == 0 )
+      printf( "HMIPv6 MAP: Cache has: %s", address.c_str() );
       FRET( true );
   }
 
+  printf( "HMIPv6 MAP: !Cache missing: %s", address.c_str() );
   FRET( false );
 }
 
@@ -305,6 +309,7 @@ address_t get_RCoA( Packet* packet ) {
   address_t RCoA;
   IpT_Dgram_Fields* fields;
   Ipv6T_Mobility_Hdr_Info* info;
+  std::string address;
 
   FIN( get_RCoA( packet ) ); 
 
@@ -313,7 +318,12 @@ address_t get_RCoA( Packet* packet ) {
   list = ipv6_extension_header_list_get( fields );
   info = (Ipv6T_Mobility_Hdr_Info*) op_prg_list_access( list, OPC_LISTPOS_HEAD );
 
+   
+
   RCoA = inet_address_copy( info->msg_data.bind_update.home_address );
+
+  address = addressToString( RCoA );
+  printf( "HMIPv6 MAP: RCoA obtained: %s", address.c_str() );
 
   FRET( RCoA );
 }
@@ -618,6 +628,7 @@ HMIPv6_MAP_state::HMIPv6_MAP (OP_SIM_CONTEXT_ARG_OPT)
 				/* Register the protocol attribute in the	registry. */
 				oms_pr_attr_set( procHndl, "protocol", OMSC_PR_STRING, "mipv6", OPC_NIL );
 				
+				puts( "HMIPv6 MAP: Initialized MAP"  );
 				
 				/* Initialize state variables */
 				bu_packet = false;
@@ -664,6 +675,7 @@ HMIPv6_MAP_state::HMIPv6_MAP (OP_SIM_CONTEXT_ARG_OPT)
 				
 				if( op_intrpt_type() == OPC_INTRPT_STRM ) {
 				
+				    puts( "HMIPv6 MAP: got packet\n" );
 				    currpacket = op_pk_get( IN_STRM );
 				
 				    /* Make sure the packet is sound */
@@ -716,11 +728,12 @@ HMIPv6_MAP_state::HMIPv6_MAP (OP_SIM_CONTEXT_ARG_OPT)
 			FSM_STATE_ENTER_FORCED (2, "BU", state2_enter_exec, "HMIPv6_MAP [BU enter execs]")
 				FSM_PROFILE_SECTION_IN ("HMIPv6_MAP [BU enter execs]", state2_enter_exec)
 				{
-				
 				/**
 				 * Modify Source Address if RCoA is active.
 				 * Relay currpacket to PPP
 				 */
+				
+				puts( "HMIPv6 MAP: Process Binding Update\n" );
 				
 				std::string LCoA = addressToString( src_address( currpacket ) );
 				
@@ -766,6 +779,8 @@ HMIPv6_MAP_state::HMIPv6_MAP (OP_SIM_CONTEXT_ARG_OPT)
 				 * Action: Update variables to indicate that RCoA is active
 				 */
 				
+				puts( "HMIPv6 MAP: Tunnel packet in\n" );
+				
 				/* Obtaion the currpackets regional care of address */
 				std::string RCoA = addressToString( dest_address( currpacket ) );
 				
@@ -807,6 +822,9 @@ HMIPv6_MAP_state::HMIPv6_MAP (OP_SIM_CONTEXT_ARG_OPT)
 				 * Author: Brian Gianforcaro (b.gianfo@gmail.com)
 				 * Action: Update variables to indicate that RCoA is active
 				 */
+				
+				puts( "HMIPv6 MAP: Tunnel packet out\n" );
+				
 				std::map<string,string>::iterator it;
 				
 				/* Obtaion the currpackets regional care of address */

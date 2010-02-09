@@ -4,7 +4,7 @@
 
 
 /* This variable carries the header into the object file */
-const char HMIPv6_MAP_AD_GEN_pr_cpp [] = "MIL_3_Tfile_Hdr_ 145A 30A modeler 7 4B6E0F6E 4B6E0F6E 1 planet12 Student 0 0 none none 0 0 none 0 0 0 0 0 0 0 0 1e80 8                                                                                                                                                                                                                                                                                                                                                                                                         ";
+const char HMIPv6_MAP_AD_GEN_pr_cpp [] = "MIL_3_Tfile_Hdr_ 145A 30A modeler 7 4B70C809 4B70C809 1 planet12 Student 0 0 none none 0 0 none 0 0 0 0 0 0 0 0 1e80 8                                                                                                                                                                                                                                                                                                                                                                                                         ";
 #include <string.h>
 
 
@@ -197,11 +197,16 @@ HMIPv6_MAP_AD_GEN_state::HMIPv6_MAP_AD_GEN (OP_SIM_CONTEXT_ARG_OPT)
 				
 				op_ima_obj_attr_get( paramid, "Access Point Functionality", &ap_flag);
 				
-				/* If this isn't an accesspoint, don't generate advertisements */
-				if ( ap_flag != OPC_BOOLINT_ENABLED ) { 
+				char name[100];
+				op_ima_obj_hname_get( op_id_self(), name, 100 );
 				
+				/* If this isn't an access point, don't generate advertisements */
+				if ( ap_flag != OPC_BOOLINT_ENABLED ) { 
+					printf( "Destroying HMIPv6 MN Advertiser in %s\n", name ); 
 				  op_pro_destroy( op_pro_self() );
 				  disabled = true;
+				} else {
+					printf( "Starting HMIPv6 MN Advertiser in %s\n", name ); 
 				}
 				}
 				FSM_PROFILE_SECTION_OUT (state0_enter_exec)
@@ -313,6 +318,7 @@ HMIPv6_MAP_AD_GEN_state::HMIPv6_MAP_AD_GEN (OP_SIM_CONTEXT_ARG_OPT)
 				    
 				  /* Deliver this IPv6 datagram to the IP module. */
 				  op_pk_send( packet, OUT_STRM );
+				  printf( "HMIPv6 MAP AD: Sending packet!\n" );
 				}
 				FSM_PROFILE_SECTION_OUT (state2_enter_exec)
 
