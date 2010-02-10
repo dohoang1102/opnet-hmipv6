@@ -1,3 +1,8 @@
+/**
+ * Author: Brian Gianforcaro (b.gianfo@gmail.com)
+ *
+ * Description: Convenience functions for working with HMIPv6
+ */
 #include <opnet.h>
 #include <hmipv6_defs.h>
 #include <hmipv6_support.h>
@@ -11,7 +16,6 @@
 #include <ip_icmp_pk.h>
 #include <mobile_ip_support.h>
 #include <string>
-
 #include <hmipv6_common.h>
 
 /**

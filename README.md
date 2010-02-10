@@ -1,11 +1,30 @@
 
+
+
 HMIPv6 RFC: 
 -----------
 [TXT][1]
 [PDF][2]
 
+
+*Details:*
+
+Uses C++ types but no real class usage. 
+
+MAP Operations:
+-	Receive BU’s, add to bind cache and send a BAck. 
+-	Intercept packets addressed to RCoA and tunnel them to the LCoA.
+
+Mobile Node Operations:
+-	Setup LCoA and RCoA
+-	Send BU to MAP with both addresses
+-	Receive Back.
+-	Interact with nodes outside MAP through tunnel with MAP.
+
+AP Operations:
+- Send out advertisements of MAP.
+
 Project ToDo Items:
--------------------
 <table>
   <tr>
     <th>ID</th><th>Task</th><th>Status</th>
@@ -13,22 +32,22 @@ Project ToDo Items:
   <tr>
     <td>1</td>
     <td>Setup MAP Advertisements from AP</td>
-    <td>Working</td>
+    <td>Done</td>
   </tr>
   <tr>
     <td>2</td>
     <td>Write MAP Advert processing in Mobile Node</td>
-    <td>Hold</td>
+    <td>Done</td>
   </tr>
   <tr>
     <td>3</td>
     <td>Setup RCoA Generation from Map Address in Mobile Node</td>
-    <td>Hold</td>
+    <td>Done</td>
   </tr>
   <tr>
     <td>4</td>
     <td>Debug Simulation</td>
-    <td>Hold</td>
+    <td>Working</td>
   </tr
 </table>
 
