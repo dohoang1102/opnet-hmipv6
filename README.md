@@ -13,7 +13,7 @@ Uses C++ types but no real class usage.
 
 MAP Operations:
 
-*	Receive BU’s, add to bind cache and send a BAck. 
+*	Receive BU's, add to bind cache and send a BAck. 
 *	Intercept packets addressed to RCoA and tunnel them to the LCoA.
 
 Mobile Node Operations:
