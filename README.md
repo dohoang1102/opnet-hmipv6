@@ -7,9 +7,14 @@ HMIPv6 RFC:
 [PDF][2]
 
 
-*Details:*
+Details:
+--------
 
 Uses C++ types but no real class usage. 
+
+The strategy I have taken to implementing HMIPv6 is to implement the MAP
+and HMIPv6 MN as simple process models which can be attached to the IP 
+stack of any existing Node Models. 
 
 MAP Operations:
 
