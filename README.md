@@ -12,16 +12,19 @@ HMIPv6 RFC:
 Uses C++ types but no real class usage. 
 
 MAP Operations:
+
 *	Receive BU’s, add to bind cache and send a BAck. 
 *	Intercept packets addressed to RCoA and tunnel them to the LCoA.
 
 Mobile Node Operations:
+
 *	Setup LCoA and RCoA
 *	Send BU to MAP with both addresses
 *	Receive Back.
 *	Interact with nodes outside MAP through tunnel with MAP.
 
 AP Operations:
+
 * Send out advertisements of MAP.
 
 Project ToDo Items:
