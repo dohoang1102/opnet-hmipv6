@@ -1,21 +1,11 @@
-/**
- * Author: Brian Gianforcaro (b.gianfo@gmail.com)
- *
- * Description: Convenience functions for working with HMIPv6
- */
+/*
+** Author: Brian Gianforcaro (b.gianfo@gmail.com)
+** Description: Convenience functions for working with HMIPv6
+**
+** 
+*/
+
 #include <opnet.h>
-#include <hmipv6_defs.h>
-#include <hmipv6_support.h>
-#include <ip_rte_v4.h>
-#include <ip_rte_support.h>
-#include <ipv6_extension_headers_defs.h>
-#include <ipv6_extension_headers_sup.h>
-#include <ip_dgram_sup.h>
-#include <ipv6_ra.h>
-#include <ip_arp.h>
-#include <ip_icmp_pk.h>
-#include <mobile_ip_support.h>
-#include <string>
 #include <hmipv6_common.h>
 
 /**

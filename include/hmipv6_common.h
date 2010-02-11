@@ -16,16 +16,25 @@
 **  address_t - Just a InetT_Address typedef
 */
 
+#ifndef _HMIPV6_COMMON_H_
+#define _HMIPV6_COMMON_H_
+
 #include <opnet.h>
 #include <hmipv6_defs.h>
 #include <hmipv6_support.h>
-#include <mipv6_support.h>
+#include <ip_rte_v4.h>
+#include <ip_rte_support.h>
+#include <ipv6_extension_headers_defs.h>
+#include <ipv6_extension_headers_sup.h>
+#include <ip_dgram_sup.h>
+#include <mobile_ip_support.h>
 #include <string>
 
 /**
  * Make sure the given packet is the correct format
  */
 bool correct_packet_fmt( Packet* packet );
+
 /**
  * Convert C++ string to InetT_Address
  */
@@ -61,3 +70,5 @@ void decapsulate_pkt( Packet** packet );
  * Encapsulates IPv6 in IPv6 packets to be transported by a HMIPv6 tunnel. 
  */
 void tunnel_pkt( Packet** packet, address_t source, address_t dest );
+
+#endif
