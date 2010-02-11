@@ -53,11 +53,7 @@ Project ToDo Items:
     <td>Setup RCoA Generation from Map Address in Mobile Node</td>
     <td>Done</td>
   </tr>
-  <tr>
-    <td>4</td>
-    <td>Debug Simulation</td>
-    <td>Working</td>
-  </tr
+  <tr> <td> 4 </td> <td> Debug Simulation </td> <td> Working </td> </tr>
 </table>
 
 
