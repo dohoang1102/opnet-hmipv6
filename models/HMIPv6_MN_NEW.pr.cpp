@@ -4,7 +4,7 @@
 
 
 /* This variable carries the header into the object file */
-const char HMIPv6_MN_NEW_pr_cpp [] = "MIL_3_Tfile_Hdr_ 145A 30A op_runsim 7 4B6E339F 4B6E339F 1 planet12 Student 0 0 none none 0 0 none 0 0 0 0 0 0 0 0 1e80 8                                                                                                                                                                                                                                                                                                                                                                                                       ";
+const char HMIPv6_MN_NEW_pr_cpp [] = "MIL_3_Tfile_Hdr_ 145A 30A modeler 7 4B738B60 4B738B60 1 planet12 Student 0 0 none none 0 0 none 0 0 0 0 0 0 0 0 1e80 8                                                                                                                                                                                                                                                                                                                                                                                                         ";
 #include <string.h>
 
 
@@ -41,6 +41,10 @@ extern int mobility_msg_size_in_bits[MIPV6C_MOB_MSG_COUNT];
 #define INCOMING_PKT  ( incomingpkt == true ) 
 
 #define ADDRESS_CHANGED ( address_changed == true )
+
+#define HAVE_MAP_ADDR ( have_map_addr == true )
+
+#define PKT_IS_TUNNELD ( tunneld == true )
 
 /* Define the packet source index for incoming stream */
 #define IN_STRM   0
@@ -135,6 +139,8 @@ class HMIPv6_MN_NEW_state
 		address_t	              		rcoa                                            ;
 		char	                   		modelName[10]                                   ;
 		OmsT_Pr_Handle	         		procHndl                                        ;
+		bool	                   		tunneld                                         ;
+		bool	                   		have_map_addr                                   ;
 
 		/* FSM code */
 		void HMIPv6_MN_NEW (OP_SIM_CONTEXT_ARG_OPT);
@@ -165,6 +171,8 @@ VosT_Obtype HMIPv6_MN_NEW_state::obtype = (VosT_Obtype)OPC_NIL;
 #define rcoa                    		op_sv_ptr->rcoa
 #define modelName               		op_sv_ptr->modelName
 #define procHndl                		op_sv_ptr->procHndl
+#define tunneld                 		op_sv_ptr->tunneld
+#define have_map_addr           		op_sv_ptr->have_map_addr
 
 /* These macro definitions will define a local variable called	*/
 /* "op_sv_ptr" in each function containing a FIN statement.	*/
@@ -182,7 +190,6 @@ VosT_Obtype HMIPv6_MN_NEW_state::obtype = (VosT_Obtype)OPC_NIL;
 #if !defined (VOSD_NO_FIN)
 enum { _op_block_origin = __LINE__ + 2};
 #endif
-
 
 /**
  * Inspect the given packet, is it a MAP Advertisement?
@@ -215,10 +222,12 @@ bool is_map_advert( Packet* packet ) {
 
       /* This is a MAP advertisement */
       if ( Mipv6C_Bind_Ref_Req == info->mh_type ) {
+        puts( "HMIPv6 MN: Packet is a MAP Advert\n" ); 
         FRET( true );
       }
     }
   }
+  puts( "HMIPv6 MN: Packet is NOT a MAP Advert\n" ); 
   FRET( false );
 }
 
@@ -230,6 +239,7 @@ address_t get_map_address( Packet* packet ) {
   IpT_Dgram_Fields* fields;
   Ipv6T_Mobility_Hdr_Info* header;
 
+  std::string address;
 	FIN( is_bind_ack( packet ) );
 
   fields = ip_dgram_fields_get( packet );
@@ -237,7 +247,8 @@ address_t get_map_address( Packet* packet ) {
   /* Grab the mobility headers */
   list = ipv6_extension_header_list_get( fields );
   header = (Ipv6T_Mobility_Hdr_Info*) op_prg_list_access( list, OPC_LISTPOS_HEAD );
-
+  address = addressToString( header->msg_data.bind_update.home_address );
+  printf( "HMIPv6 MN: MAP Address - %s\n", address.c_str() ); 
   FRET( inet_address_copy( header->msg_data.bind_update.home_address ) );
 }
 
@@ -268,9 +279,11 @@ address_t generate_rcoa( void ) {
   _itoa( rand_int, buffer, HEX_FMT );
   map_addr.append( buffer );
 
+
+  printf( "HMIPv6 MN: Generated RCoa - %s\n", map_addr.c_str() ); 
+
   /* Convert the generated string to address */
   RCoA = stringToAddress( map_addr ); 
-
 
   FRET( RCoA );
 }
@@ -280,11 +293,14 @@ address_t generate_rcoa( void ) {
  */
 address_t get_lcoa( void ) {
   address_t LCoA;
+  std::string address;
 
   FIN( get_lcoa( void ) );
 
   LCoA = inet_support_address_from_node_id_get( parentId, InetC_Addr_Family_v6 );
 
+  address = addressToString( LCoA );
+  printf( "HMIPv6 MN: LCoA is %s\n", address.c_str() ); 
   FRET( LCoA );
 }
 
@@ -299,8 +315,10 @@ bool has_lcoa_changed( void ) {
   my_address = get_lcoa();
 
   if ( inet_address_equal( my_address, lcoa ) ) {
+    puts( "HMIPv6 MN: LCoA hasn't changed\n"); 
     FRET( false  );
   }
+  puts( "HMIPv6 MN: LCoA has changed\n"); 
   FRET( true );
 }
 
@@ -406,6 +424,8 @@ bu_msg_send( address_t dest_addr, address_t suggestedRCoA ) {
 #undef rcoa
 #undef modelName
 #undef procHndl
+#undef tunneld
+#undef have_map_addr
 
 /* Access from C kernel using C linkage */
 extern "C"
@@ -495,6 +515,8 @@ HMIPv6_MN_NEW_state::HMIPv6_MN_NEW (OP_SIM_CONTEXT_ARG_OPT)
 				rcoa = InetI_Invalid_Addr;
 				map_address = InetI_Invalid_Addr;
 				lcoa = inet_address_copy( get_lcoa() );
+				
+				puts( "HMIPv6 MN: Initialized mobile node.\n" );
 				}
 				FSM_PROFILE_SECTION_OUT (state0_enter_exec)
 
@@ -529,7 +551,17 @@ HMIPv6_MN_NEW_state::HMIPv6_MN_NEW (OP_SIM_CONTEXT_ARG_OPT)
 
 
 			/** state (init2) transition processing **/
-			FSM_TRANSIT_ONLY ((SELF_NOTIF), 2, state2_enter_exec, ;, init2, "SELF_NOTIF", "", "init2", "idle", "tr_16", "HMIPv6_MN_NEW [init2 -> idle : SELF_NOTIF / ]")
+			FSM_PROFILE_SECTION_IN ("HMIPv6_MN_NEW [init2 trans conditions]", state1_trans_conds)
+			FSM_INIT_COND (HAVE_MAP_ADDR)
+			FSM_DFLT_COND
+			FSM_TEST_LOGIC ("init2")
+			FSM_PROFILE_SECTION_OUT (state1_trans_conds)
+
+			FSM_TRANSIT_SWITCH
+				{
+				FSM_CASE_TRANSIT (0, 2, state2_enter_exec, ;, "HAVE_MAP_ADDR", "", "init2", "idle", "tr_16", "HMIPv6_MN_NEW [init2 -> idle : HAVE_MAP_ADDR / ]")
+				FSM_CASE_TRANSIT (1, 1, state1_enter_exec, ;, "default", "", "init2", "init2", "tr_21", "HMIPv6_MN_NEW [init2 -> init2 : default / ]")
+				}
 				/*---------------------------------------------------------*/
 
 
@@ -553,6 +585,7 @@ HMIPv6_MN_NEW_state::HMIPv6_MN_NEW (OP_SIM_CONTEXT_ARG_OPT)
 				    /* We have a incoming packet. */
 				    case OPC_INTRPT_STRM: {
 				
+				      puts( "HMIPv6 MN: Got packet\n" );
 				      currpacket = op_pk_get( IN_STRM );
 				
 				      /* Make sure the packet is sound */
@@ -587,6 +620,7 @@ HMIPv6_MN_NEW_state::HMIPv6_MN_NEW (OP_SIM_CONTEXT_ARG_OPT)
 			/** state (idle) transition processing **/
 			FSM_PROFILE_SECTION_IN ("HMIPv6_MN_NEW [idle trans conditions]", state2_trans_conds)
 			FSM_INIT_COND (ADDRESS_CHANGED)
+			FSM_TEST_COND (PKT_IS_TUNNELD)
 			FSM_DFLT_COND
 			FSM_TEST_LOGIC ("idle")
 			FSM_PROFILE_SECTION_OUT (state2_trans_conds)
@@ -594,7 +628,8 @@ HMIPv6_MN_NEW_state::HMIPv6_MN_NEW (OP_SIM_CONTEXT_ARG_OPT)
 			FSM_TRANSIT_SWITCH
 				{
 				FSM_CASE_TRANSIT (0, 3, state3_enter_exec, ;, "ADDRESS_CHANGED", "", "idle", "SEND BU", "tr_17", "HMIPv6_MN_NEW [idle -> SEND BU : ADDRESS_CHANGED / ]")
-				FSM_CASE_TRANSIT (1, 2, state2_enter_exec, ;, "default", "", "idle", "idle", "tr_19", "HMIPv6_MN_NEW [idle -> idle : default / ]")
+				FSM_CASE_TRANSIT (1, 4, state4_enter_exec, ;, "PKT_IS_TUNNELD", "", "idle", "GOT_TNLD", "tr_23", "HMIPv6_MN_NEW [idle -> GOT_TNLD : PKT_IS_TUNNELD / ]")
+				FSM_CASE_TRANSIT (2, 2, state2_enter_exec, ;, "default", "", "idle", "idle", "tr_22", "HMIPv6_MN_NEW [idle -> idle : default / ]")
 				}
 				/*---------------------------------------------------------*/
 
@@ -620,6 +655,8 @@ HMIPv6_MN_NEW_state::HMIPv6_MN_NEW (OP_SIM_CONTEXT_ARG_OPT)
 				  rcoa = generate_rcoa();
 				}
 				
+				std::string mapstr = addressToString( map_address );
+				printf( "HMIPv6 MN: Sending BU to MAP - %s\n", mapstr.c_str() );
 				bu_msg_send( map_address, rcoa );
 				}
 				FSM_PROFILE_SECTION_OUT (state3_enter_exec)
@@ -636,6 +673,19 @@ HMIPv6_MN_NEW_state::HMIPv6_MN_NEW (OP_SIM_CONTEXT_ARG_OPT)
 
 			/** state (SEND BU) transition processing **/
 			FSM_TRANSIT_FORCE (2, state2_enter_exec, ;, "default", "", "SEND BU", "idle", "tr_18", "HMIPv6_MN_NEW [SEND BU -> idle : default / ]")
+				/*---------------------------------------------------------*/
+
+
+
+			/** state (GOT_TNLD) enter executives **/
+			FSM_STATE_ENTER_FORCED (4, "GOT_TNLD", state4_enter_exec, "HMIPv6_MN_NEW [GOT_TNLD enter execs]")
+
+			/** state (GOT_TNLD) exit executives **/
+			FSM_STATE_EXIT_FORCED (4, "GOT_TNLD", "HMIPv6_MN_NEW [GOT_TNLD exit execs]")
+
+
+			/** state (GOT_TNLD) transition processing **/
+			FSM_TRANSIT_FORCE (2, state2_enter_exec, ;, "default", "", "GOT_TNLD", "idle", "tr_24", "HMIPv6_MN_NEW [GOT_TNLD -> idle : default / ]")
 				/*---------------------------------------------------------*/
 
 
@@ -822,6 +872,16 @@ _op_HMIPv6_MN_NEW_svar (void * gen_ptr, const char * var_name, void ** var_p_ptr
 	if (strcmp ("procHndl" , var_name) == 0)
 		{
 		*var_p_ptr = (void *) (&prs_ptr->procHndl);
+		FOUT
+		}
+	if (strcmp ("tunneld" , var_name) == 0)
+		{
+		*var_p_ptr = (void *) (&prs_ptr->tunneld);
+		FOUT
+		}
+	if (strcmp ("have_map_addr" , var_name) == 0)
+		{
+		*var_p_ptr = (void *) (&prs_ptr->have_map_addr);
 		FOUT
 		}
 	*var_p_ptr = (void *)OPC_NIL;

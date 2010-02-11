@@ -4,7 +4,7 @@
 
 
 /* This variable carries the header into the object file */
-const char HMIPv6_MAP_pr_cpp [] = "MIL_3_Tfile_Hdr_ 145A 30A modeler 7 4B70C843 4B70C843 1 planet12 Student 0 0 none none 0 0 none 0 0 0 0 0 0 0 0 1e80 8                                                                                                                                                                                                                                                                                                                                                                                                         ";
+const char HMIPv6_MAP_pr_cpp [] = "MIL_3_Tfile_Hdr_ 145A 30A modeler 7 4B738966 4B738966 1 planet12 Student 0 0 none none 0 0 none 0 0 0 0 0 0 0 0 1e80 8                                                                                                                                                                                                                                                                                                                                                                                                         ";
 #include <string.h>
 
 
@@ -60,6 +60,7 @@ int	mobility_msg_size_in_bits [MIPV6C_MOB_MSG_COUNT] = { 64, 128, 128, 192, 192,
 /* Define the packet source index for the output stream */
 #define OUT_STRM  1
 
+#define MAP_ADDR "1:1:1:1"
 
 bool is_bind_update( Packet* packet );
 
@@ -631,6 +632,8 @@ HMIPv6_MAP_state::HMIPv6_MAP (OP_SIM_CONTEXT_ARG_OPT)
 				puts( "HMIPv6 MAP: Initialized MAP"  );
 				
 				/* Initialize state variables */
+				/* TODO: Hard coding MAP Address for now */
+				map_address = stringToAddress( std::string( MAP_ADDR ) );
 				bu_packet = false;
 				tunnelout = false;
 				tunnelin  = false;
@@ -688,9 +691,11 @@ HMIPv6_MAP_state::HMIPv6_MAP (OP_SIM_CONTEXT_ARG_OPT)
 				      if ( is_bind_update( currpacket ) ) {
 				        bu_packet = true;
 				        /* Try to find an address for the destination */
+				        /* Packet coming above (outside) MAP needs to be tunneled in (under). */
 				      } else if ( bind_cache.find( dest ) != bind_cache.end() ) { 
 				        tunnelin = true;
 				        /* Try to find an address for the source */
+				        /* Packet coming bellow (inside) MAP needs to be tunneled out (above). */
 				      } else if ( cache_has_lcoa( src ) ) {
 				        tunnelout = true;
 				      } else {
@@ -769,26 +774,30 @@ HMIPv6_MAP_state::HMIPv6_MAP (OP_SIM_CONTEXT_ARG_OPT)
 			FSM_STATE_ENTER_FORCED (3, "TNL_IN", state3_enter_exec, "HMIPv6_MAP [TNL_IN enter execs]")
 				FSM_PROFILE_SECTION_IN ("HMIPv6_MAP [TNL_IN enter execs]", state3_enter_exec)
 				{
-				/**
-				 * Sate Variables:
-				 *   Packet * currpacket 
-				 *   bool bu_packet
-				 *   bool redirect 
-				 *
-				 * Author: Brian Gianforcaro (b.gianfo@gmail.com)
-				 * Action: Update variables to indicate that RCoA is active
-				 */
+				/*
+				** Sate Variables:
+				**   Packet * currpacket 
+				**   std::map<std::string, std::string> bind_cache;
+				**
+				** Author: Brian Gianforcaro (b.gianfo@gmail.com)
+				** Action: Update variables to indicate that RCoA is active
+				*/
 				
+				/* Packet coming in from top of MAP down into */
 				puts( "HMIPv6 MAP: Tunnel packet in\n" );
 				
-				/* Obtaion the currpackets regional care of address */
+				/* Obtain the curr packet's regional care of address */
 				std::string RCoA = addressToString( dest_address( currpacket ) );
 				
-				// Set the destionation address of the currpacket
-				// to the cached local care of address 
-				currpacket = set_destination( currpacket, bind_cache[RCoA] );
+				/*
+				** Set the destination address of the curr packet
+				** to the cached local care of address 
+				*/
+				//currpacket = set_destination( currpacket, bind_cache[RCoA] );
 				
-				/* Send the currpacket back to the IP module */
+				tunnel_pkt( &currpacket, map_address, stringToAddress( bind_cache[RCoA] ) );
+				
+				/* Send the curr packet back to the IP module */
 				op_pk_send( currpacket, OUT_STRM );
 				}
 				FSM_PROFILE_SECTION_OUT (state3_enter_exec)
@@ -823,6 +832,7 @@ HMIPv6_MAP_state::HMIPv6_MAP (OP_SIM_CONTEXT_ARG_OPT)
 				 * Action: Update variables to indicate that RCoA is active
 				 */
 				
+				/* Packet coming from inside MAP needs to be tunneled out */
 				puts( "HMIPv6 MAP: Tunnel packet out\n" );
 				
 				std::map<string,string>::iterator it;
@@ -840,7 +850,10 @@ HMIPv6_MAP_state::HMIPv6_MAP (OP_SIM_CONTEXT_ARG_OPT)
 				
 				// Set the destionation address of the currpacket
 				// to the cached local care of address 
-				currpacket = set_source( currpacket, RCoA );
+				//currpacket = set_source( currpacket, RCoA );
+				
+				// Decapsulate packet since it has reached the end of it's tunnel
+				decapsulate_pkt( &currpacket );
 				
 				/* Send the currpacket back to the IP module */
 				op_pk_send( currpacket, OUT_STRM );

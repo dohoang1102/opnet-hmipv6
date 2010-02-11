@@ -144,13 +144,13 @@ void decapsulate_pkt( Packet** packet ) {
 /** 
  * Encapsulates IPv6 in IPv6 packets to be transported by a HMIPv6 tunnel. 
  */
-void tunnel_pkt( Packet** packet, InetT_Address source, InetT_Address dest ) {
+void tunnel_pkt( Packet** packet, address_t source, address_t dest ) {
 
   Packet* ip_packet;
   IpT_Dgram_Fields* newDG;
   IpT_Dgram_Fields* oldDG;
 
-  FIN( tunnel_pkt( iprmd_ptr, packet, source, dest_address ) );
+  FIN( tunnel_pkt( packet, source, dest_address ) );
 
   /* Access the old field information.            */
   op_pk_nfd_access( *packet, "fields", &oldDG );
