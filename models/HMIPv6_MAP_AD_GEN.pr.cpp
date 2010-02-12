@@ -4,7 +4,7 @@
 
 
 /* This variable carries the header into the object file */
-const char HMIPv6_MAP_AD_GEN_pr_cpp [] = "MIL_3_Tfile_Hdr_ 145A 30A modeler 7 4B749F35 4B749F35 1 planet12 Student 0 0 none none 0 0 none 0 0 0 0 0 0 0 0 1e80 8                                                                                                                                                                                                                                                                                                                                                                                                         ";
+const char HMIPv6_MAP_AD_GEN_pr_cpp [] = "MIL_3_Tfile_Hdr_ 145A 30A modeler 7 4B74C03B 4B74C03B 1 planet12 Student 0 0 none none 0 0 none 0 0 0 0 0 0 0 0 1e80 8                                                                                                                                                                                                                                                                                                                                                                                                         ";
 #include <string.h>
 
 
@@ -180,7 +180,7 @@ HMIPv6_MAP_AD_GEN_state::HMIPv6_MAP_AD_GEN (OP_SIM_CONTEXT_ARG_OPT)
 			{
 			/*---------------------------------------------------------*/
 			/** state (init) enter executives **/
-			FSM_STATE_ENTER_UNFORCED_NOLABEL (0, "init", "HMIPv6_MAP_AD_GEN [init enter execs]")
+			FSM_STATE_ENTER_FORCED_NOLABEL (0, "init", "HMIPv6_MAP_AD_GEN [init enter execs]")
 				FSM_PROFILE_SECTION_IN ("HMIPv6_MAP_AD_GEN [init enter execs]", state0_enter_exec)
 				{
 				/*
@@ -188,38 +188,42 @@ HMIPv6_MAP_AD_GEN_state::HMIPv6_MAP_AD_GEN (OP_SIM_CONTEXT_ARG_OPT)
 				**   If not an AP, destroy this module.
 				**   else, continue.
 				*/
-				Objid myid;
-				Objid paramid;
-				
+				puts(" What's up from MAP AD!" );
 				/* Obtain the values assigned to the various attributes	*/
-				myid = op_id_self();
-				op_ima_obj_attr_get( myid, "Wireless LAN Parameters", &paramid );
-				paramid = op_topo_child( paramid, OPC_OBJTYPE_GENERIC, 0 );
 				
+				Objid macid = op_id_from_name( op_topo_parent(op_id_self()), 
+				    OPC_OBJTYPE_PROC, "wireless_lan_mac" );
+				
+				
+				Objid paramid;
+				op_ima_obj_attr_get( macid, "Wireless LAN Parameters", &paramid );
+				
+				Objid mac_param_child = op_topo_child(paramid, OPC_OBJTYPE_GENERIC, 0);
+				    
 				int ap_flag;
-				op_ima_obj_attr_get( paramid, "Access Point Functionality", &ap_flag);
+				op_ima_obj_attr_get( mac_param_child, "Access Point Functionality", &ap_flag );
 				
 				char name[100];
 				op_ima_obj_hname_get( op_id_self(), name, 100 );
 				
 				/* If this isn't an access point, don't generate advertisements */
 				if ( ap_flag != OPC_BOOLINT_ENABLED ) { 
-					printf( "Destroying HMIPv6 MN Advertiser in %s\n", name ); 
+					printf( "HMIPv6 MAP AD: Destroying HMIPv6 MN Advertiser in %s\n", name ); 
 				  op_pro_destroy( op_pro_self() );
 				  disabled = true;
 				} else {
-				  disabled  = false;
-					printf( "Starting HMIPv6 MN Advertiser in %s\n", name ); 
+				  disabled = false;
+					printf( "HMIPv6 MAP AD: Starting HMIPv6 MN Advertiser in %s\n", name ); 
+				  op_intrpt_schedule_self(op_sim_time() + TIME_LIMIT, TIMER_INTERRUPT); 
+				  
 				}
+				
+				
 				}
 				FSM_PROFILE_SECTION_OUT (state0_enter_exec)
 
-			/** blocking after enter executives of unforced state. **/
-			FSM_EXIT (1,"HMIPv6_MAP_AD_GEN")
-
-
 			/** state (init) exit executives **/
-			FSM_STATE_EXIT_UNFORCED (0, "init", "HMIPv6_MAP_AD_GEN [init exit execs]")
+			FSM_STATE_EXIT_FORCED (0, "init", "HMIPv6_MAP_AD_GEN [init exit execs]")
 
 
 			/** state (init) transition processing **/

@@ -101,7 +101,7 @@ bool tunneled( Packet* packet, address_t destination ) {
   /* Access field information. */
   op_pk_nfd_access( packet, "fields", &fields );
 
-  if ( fields->encap_count > 0 && fields->protocal == IpC_Protocol_IPv6 ) {
+  if ( fields->encap_count > 0 && fields->protocol == IpC_Protocol_IPv6 ) {
     if ( inet_address_equal( destination, fields->dest_addr ) ) {
       FRET( true );
     }
@@ -182,8 +182,8 @@ void tunnel_pkt( Packet** packet, address_t source, address_t dest ) {
   newDG->src_internal_addr = inet_rtab_addr_convert( source );
 
   /* Set the destination address for this IP datagram.    */
-  newDG->dest_addr = inet_address_copy( dest_address );
-  newDG->dest_internal_addr = inet_rtab_addr_convert( dest_address );
+  newDG->dest_addr = inet_address_copy( dest );
+  newDG->dest_internal_addr = inet_rtab_addr_convert( dest );
   
   /* The protocol fields  must indicate that there is an IPv6 */
   /* datagram encapsulated in this packet.          */
@@ -191,8 +191,8 @@ void tunnel_pkt( Packet** packet, address_t source, address_t dest ) {
   
   /* Set the packet size-related fields of the IP datagram. */
   newDG->orig_len = op_pk_total_size_get( *packet ) / 8;
-  newDG->frag_len = new_datagram->orig_len;
-  newDG->original_size = 160 + new_datagram->orig_len * 8;
+  newDG->frag_len = newDG->orig_len;
+  newDG->original_size = 160 + newDG->orig_len * 8;
 
   /* Indicate that the packet is not yet fragmented.      */
   newDG->frag = 0;

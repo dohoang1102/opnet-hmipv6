@@ -4,7 +4,7 @@
 
 
 /* This variable carries the header into the object file */
-const char HMIPv6_MAP_pr_cpp [] = "MIL_3_Tfile_Hdr_ 145A 30A modeler 7 4B749F3D 4B749F3D 1 planet12 Student 0 0 none none 0 0 none 0 0 0 0 0 0 0 0 1e80 8                                                                                                                                                                                                                                                                                                                                                                                                         ";
+const char HMIPv6_MAP_pr_cpp [] = "MIL_3_Tfile_Hdr_ 145A 30A modeler 7 4B74B396 4B74B396 1 planet12 Student 0 0 none none 0 0 none 0 0 0 0 0 0 0 0 1e80 8                                                                                                                                                                                                                                                                                                                                                                                                         ";
 #include <string.h>
 
 
@@ -86,19 +86,6 @@ address_t get_RCoA( Packet* packet );
  */
 void send_BAck( address_t destination, address_t RCoA  );
  
-/**
- * This function removes and IPv6 in IPv6 encapsulated packet.
- * It is used at the end point of a HMIPv6 tunnel. 
- */ 
-void decapsulate_pkt( Packet** packet );
-
-/** 
- * Encapsulates IPv6 in IPv6 packets to be transported by a MIPv6 tunnel. 
- */
-void
-tunnel_pkt( IpT_Rte_Module_Data* iprmd_ptr, Packet** packet, InetT_Address source, InetT_Address dest_address );
-
-
 
 /* End of Header Block */
 
@@ -404,117 +391,6 @@ void send_BAck( address_t destination, address_t RCoA ) {
   FOUT;
 } 
 
-/**
- * This function removes and IPv6 in IPv6 encapsulated packet.
- * It is used at the end point of a HMIPv6 tunnel. 
- */ 
-void decapsulate_pkt( Packet** packet ) {
-
-  Packet* encapsulated_packet;
-
-  FIN( decapsulate_pkt( packet ) );
-
-  /* Access the encapsulated packet. */
-  op_pk_nfd_get( *packet, "data", &encapsulated_packet );
-  
-  /* Destroy the carrier packet. */
-  op_pk_destroy( *packet );
-  
-  /* Give the encapsulated packet to the caller. */
-  *packet = encapsulated_packet;
-
-  FOUT;
-}
-
-/** 
- * Encapsulates IPv6 in IPv6 packets to be transported by a MIPv6 tunnel. 
- */
-void
-tunnel_pkt( IpT_Rte_Module_Data* iprmd_ptr, Packet** packet, InetT_Address source, InetT_Address dest_address ) {
-
-  Packet* ip_packet;
-  IpT_Dgram_Fields* new_datagram;
-  IpT_Dgram_Fields* old_datagram;
-
-  FIN( tunnel_pkt( iprmd_ptr, packet, source, dest_address ) );
-
-  /* Access the old field information.            */
-  op_pk_nfd_access( *packet, "fields", &old_datagram );
-
-  /* Create the IP datagram. */
-  ip_packet = ip_dgram_create();
-
-  /* Set the bulk size of the IP packet to model the space  */
-  /* occupied by the encapsulated IP packet. This is equal to */
-  /* the data packet plus the size of the ICMP header.    */
-  op_pk_bulk_size_set( ip_packet, op_pk_total_size_get( *packet ) );
-
-  /* Since no request should be made to the IP process,   */
-  /* explicitly de-install any outstanding ICIs.        */
-  op_ici_install( OPC_NIL );
-
-  /* Copy the old info field to create new one for the outer packet. */
-  new_datagram = ip_dgram_fdstruct_copy( old_datagram );
-
-  /* Remove the extension headers if any. The outer packet  */
-  /* of a MIPv6 tunnel must not carry any IPv6 extension    */
-  /* headers, otherwise MIPv6 may process it as a MIPv6     */
-  /* control message.                     */
-  if ( ipv6_extension_header_exists( new_datagram ) ) {
-    /* Remove the extension headers from the outer packet.  */
-    ip_dgram_extension_headers_info_destroy( new_datagram );   
-  }
-
-  /* While copying the contents of the IPv6 header fields   */
-  /* copies of the original source and destination IPv6     */
-  /* addresses were allocated in memory. They must be     */
-  /* destroyed since they will be replaced by the tunnels   */
-  /* source and destination addresses.            */
-  inet_address_destroy( new_datagram->src_addr );
-  inet_address_destroy( new_datagram->dest_addr );
-  
-  /* Set the destination address for this IP datagram.    */
-  new_datagram->src_addr = inet_address_copy( source );
-
-  /* Also set the internal source address.          */
-  new_datagram->src_internal_addr = inet_rtab_addr_convert( source );
-
-  /* Set the destination address for this IP datagram.    */
-  new_datagram->dest_addr = inet_address_copy( dest_address );
-
-  /* Also set the internal destination address.       */  
-  new_datagram->dest_internal_addr = inet_rtab_addr_convert( dest_address );
-  
-  /* The protocol fields  must indicate that there is an IPv6 */
-  /* datagram encapsulated in this packet.          */
-  new_datagram->protocol = IpC_Protocol_IPv6;
-  
-  /* Set the packet size-related fields of the IP datagram. */
-  new_datagram->orig_len = op_pk_total_size_get( *packet ) / 8;
-  new_datagram->frag_len = new_datagram->orig_len;
-  new_datagram->original_size = 160 + new_datagram->orig_len * 8;
-
-  /* Indicate that the packet is not yet fragmented.      */
-  new_datagram->frag = 0;
-
-  /* Set the encapsulation count for simulation efficiency.      */
-  new_datagram->encap_count++;
-
-  new_datagram->dest_internal_addr = IPC_FAST_ADDR_INVALID;
-  new_datagram->src_internal_addr  = IPC_FAST_ADDR_INVALID;
-
-  /* Set the fields structure inside the IP datagram. */
-  op_pk_nfd_set( ip_packet, "fields", new_datagram, 
-      ip_dgram_fdstruct_copy, ip_dgram_fdstruct_destroy, sizeof (IpT_Dgram_Fields) );
-
-  /* Set the original IP packet in the data field of the new  IP datagram. */
-  op_pk_nfd_set( ip_packet, "data", *packet );
-
-  /* Return the outer packet. */
-  *packet = ip_packet;
-  
-  FOUT;
-}
 
 /* End of Function Block */
 
