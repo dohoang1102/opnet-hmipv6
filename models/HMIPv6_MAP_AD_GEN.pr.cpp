@@ -4,7 +4,7 @@
 
 
 /* This variable carries the header into the object file */
-const char HMIPv6_MAP_AD_GEN_pr_cpp [] = "MIL_3_Tfile_Hdr_ 145A 30A modeler 7 4B74C03B 4B74C03B 1 planet12 Student 0 0 none none 0 0 none 0 0 0 0 0 0 0 0 1e80 8                                                                                                                                                                                                                                                                                                                                                                                                         ";
+const char HMIPv6_MAP_AD_GEN_pr_cpp [] = "MIL_3_Tfile_Hdr_ 145A 30A modeler 7 4B74C56C 4B74C56C 1 planet12 Student 0 0 none none 0 0 none 0 0 0 0 0 0 0 0 1e80 8                                                                                                                                                                                                                                                                                                                                                                                                         ";
 #include <string.h>
 
 
@@ -215,7 +215,7 @@ HMIPv6_MAP_AD_GEN_state::HMIPv6_MAP_AD_GEN (OP_SIM_CONTEXT_ARG_OPT)
 				  disabled = false;
 					printf( "HMIPv6 MAP AD: Starting HMIPv6 MN Advertiser in %s\n", name ); 
 				  op_intrpt_schedule_self(op_sim_time() + TIME_LIMIT, TIMER_INTERRUPT); 
-				  
+				  ipv6_extension_header_package_init();
 				}
 				
 				
@@ -305,7 +305,7 @@ HMIPv6_MAP_AD_GEN_state::HMIPv6_MAP_AD_GEN (OP_SIM_CONTEXT_ARG_OPT)
 				** to represent a MAP Advertisement packet. The home_address
 				** will hold the MAP Address
 				*/
-				header = (Ipv6T_Mobility_Hdr_Info *)ipv6_mobility_header_create( Mipv6C_Bind_Ref_Req );
+				header = ipv6_mobility_header_create( Mipv6C_Bind_Ref_Req );
 				header->msg_data.bind_update.home_address = inet_address_copy( map_address );
 				
 				/* Set the mobility header information in the datagram fields. */
