@@ -4,7 +4,7 @@
 
 
 /* This variable carries the header into the object file */
-const char HMIPv6_MAP_AD_GEN_pr_cpp [] = "MIL_3_Tfile_Hdr_ 145A 30A modeler 7 4B7420BE 4B7420BE 1 planet12 Student 0 0 none none 0 0 none 0 0 0 0 0 0 0 0 1e80 8                                                                                                                                                                                                                                                                                                                                                                                                         ";
+const char HMIPv6_MAP_AD_GEN_pr_cpp [] = "MIL_3_Tfile_Hdr_ 145A 30A modeler 7 4B749F35 4B749F35 1 planet12 Student 0 0 none none 0 0 none 0 0 0 0 0 0 0 0 1e80 8                                                                                                                                                                                                                                                                                                                                                                                                         ";
 #include <string.h>
 
 
@@ -37,11 +37,11 @@ extern int mobility_msg_size_in_bits[MIPV6C_MOB_MSG_COUNT];
 /* How often to check for packets in seconds */
 #define TIME_LIMIT 	1.0
 
-#define TIMER_END       (op_intrpt_type () == OPC_INTRPT_SELF && op_intrpt_code() == TIMER_INTERRUPT)
-
 #define CAN_SEND ((op_intrpt_type() == OPC_INTRPT_SELF) && (op_intrpt_code() == TIMER_INTERRUPT))
 
 #define DISABLED (disabled == true)
+
+#define ENABLED (disabled == false)
 
 #define OUT_STRM 0
 
@@ -183,10 +183,11 @@ HMIPv6_MAP_AD_GEN_state::HMIPv6_MAP_AD_GEN (OP_SIM_CONTEXT_ARG_OPT)
 			FSM_STATE_ENTER_UNFORCED_NOLABEL (0, "init", "HMIPv6_MAP_AD_GEN [init enter execs]")
 				FSM_PROFILE_SECTION_IN ("HMIPv6_MAP_AD_GEN [init enter execs]", state0_enter_exec)
 				{
-				/**
-				 * Check paramaters, if not an ap, destory this module.
-				 */
-				int ap_flag;
+				/*
+				** Check AP parameters:
+				**   If not an AP, destroy this module.
+				**   else, continue.
+				*/
 				Objid myid;
 				Objid paramid;
 				
@@ -195,6 +196,7 @@ HMIPv6_MAP_AD_GEN_state::HMIPv6_MAP_AD_GEN (OP_SIM_CONTEXT_ARG_OPT)
 				op_ima_obj_attr_get( myid, "Wireless LAN Parameters", &paramid );
 				paramid = op_topo_child( paramid, OPC_OBJTYPE_GENERIC, 0 );
 				
+				int ap_flag;
 				op_ima_obj_attr_get( paramid, "Access Point Functionality", &ap_flag);
 				
 				char name[100];
@@ -206,6 +208,7 @@ HMIPv6_MAP_AD_GEN_state::HMIPv6_MAP_AD_GEN (OP_SIM_CONTEXT_ARG_OPT)
 				  op_pro_destroy( op_pro_self() );
 				  disabled = true;
 				} else {
+				  disabled  = false;
 					printf( "Starting HMIPv6 MN Advertiser in %s\n", name ); 
 				}
 				}
@@ -221,14 +224,14 @@ HMIPv6_MAP_AD_GEN_state::HMIPv6_MAP_AD_GEN (OP_SIM_CONTEXT_ARG_OPT)
 
 			/** state (init) transition processing **/
 			FSM_PROFILE_SECTION_IN ("HMIPv6_MAP_AD_GEN [init trans conditions]", state0_trans_conds)
-			FSM_INIT_COND ((1))
+			FSM_INIT_COND (ENABLED)
 			FSM_TEST_COND (DISABLED)
 			FSM_TEST_LOGIC ("init")
 			FSM_PROFILE_SECTION_OUT (state0_trans_conds)
 
 			FSM_TRANSIT_SWITCH
 				{
-				FSM_CASE_TRANSIT (0, 1, state1_enter_exec, ;, "", "", "init", "idle", "tr_0", "HMIPv6_MAP_AD_GEN [init -> idle :  / ]")
+				FSM_CASE_TRANSIT (0, 1, state1_enter_exec, ;, "ENABLED", "", "init", "idle", "tr_0", "HMIPv6_MAP_AD_GEN [init -> idle : ENABLED / ]")
 				FSM_CASE_TRANSIT (1, 3, state3_enter_exec, ;, "DISABLED", "", "init", "FAIL", "tr_5", "HMIPv6_MAP_AD_GEN [init -> FAIL : DISABLED / ]")
 				}
 				/*---------------------------------------------------------*/
@@ -267,58 +270,64 @@ HMIPv6_MAP_AD_GEN_state::HMIPv6_MAP_AD_GEN (OP_SIM_CONTEXT_ARG_OPT)
 				FSM_PROFILE_SECTION_IN ("HMIPv6_MAP_AD_GEN [SEND AD enter execs]", state2_enter_exec)
 				{
 				
-				/* generate one advertisement */
-				  Packet*           packet;
-				  OpT_Packet_Size   ext_hdr_len;
-				  IpT_Dgram_Fields* dgram;
-				  Ipv6T_Mobility_Hdr_Info*  header;
+				/* Generate one advertisement */
+				Packet*           packet;
+				OpT_Packet_Size   ext_hdr_len;
+				IpT_Dgram_Fields* dgram;
+				Ipv6T_Mobility_Hdr_Info*  header;
 				
-				  /* Create the IP datagram. */
-				  packet = ip_dgram_create();
+				/* Create the IP datagram. */
+				packet = ip_dgram_create();
+				
+				/* Get the size contributed by the mobility header. */
+				ext_hdr_len = (OpT_Packet_Size) mobility_msg_size_in_bits[BIND_ACK];
+				
+				Objid module = op_topo_parent( op_id_self() );
+				
+				/* Create IP datagram fields data structure. */
+				dgram = ip_dgram_fdstruct_create();
+				dgram->src_addr = inet_support_address_from_node_id_get( module, InetC_Addr_Family_v6 );
+				dgram->src_internal_addr = inet_rtab_addr_convert( dgram->src_addr );
+				dgram->orig_len = ext_hdr_len;
+				dgram->frag_len = ext_hdr_len;
+				dgram->ttl      = 255;
+				
+				/* The protocol field (next header in IPv6) must    */
+				/* indicate that this is a mobility extension header. */
+				dgram->protocol = IpC_Procotol_Mobility_Ext_Hdr;
+				
+				/* 
+				** @NOTE!: For simplicity we use the  Mipv6C_Bind_Ref_Req header type
+				** to represent a MAP Advertisement packet. The home_address
+				** will hold the MAP Address
+				*/
+				header = (Ipv6T_Mobility_Hdr_Info *)ipv6_mobility_header_create( Mipv6C_Bind_Ref_Req );
+				header->msg_data.bind_update.home_address = inet_address_copy( map_address );
+				
+				/* Set the mobility header information in the datagram fields. */
+				ipv6_mobility_hdr_insert( dgram, header );
+				
+				/* Set the datagram fields into the IPv6 datagram. */
+				ip_dgram_fields_set( packet, dgram );
+				
+				/* Refresh the IP packet fields. */
+				op_pk_nfd_access( packet, "fields", &dgram );
+				
+				/* Alter the header field size to model the mob msg size. */ 
+				
+				/* Add the size of the mobility extension header into */
+				/* the packet. Modify the size of the header fields in   */
+				/* the IPv6 packet to achieve this.           */
+				
+				ip_dgram_sup_ipv6_extension_hdr_size_add( &packet, &dgram,
+				    IpC_Procotol_Mobility_Ext_Hdr, (int) ext_hdr_len );
+				
+				/* Un-install the event state. */
+				op_ev_state_install( OPC_NIL, OPC_NIL);
 				  
-				  /* Get the size contributed by the mobility header. */
-				  ext_hdr_len = (OpT_Packet_Size) mobility_msg_size_in_bits[BIND_ACK];
-				  
-				  /* Create IP datagram fields data structure. */
-				  dgram = ip_dgram_fdstruct_create();
-				  dgram->src_addr = inet_support_address_from_node_id_get( op_topo_parent(op_id_self()), InetC_Addr_Family_v6 );
-				  dgram->src_internal_addr = inet_rtab_addr_convert( dgram->src_addr );
-				  dgram->orig_len = ext_hdr_len;
-				  dgram->frag_len = ext_hdr_len;
-				  dgram->ttl      = 255;
-				  
-				  /* The protocol field (next header in IPv6) must    */
-				  /* indicate that this is a mobility extension header. */
-				  dgram->protocol = IpC_Procotol_Mobility_Ext_Hdr;
-				
-				  /* Set the message fields to the indicated values. */
-				  header = (Ipv6T_Mobility_Hdr_Info *)ipv6_mobility_header_create( Mipv6C_Bind_Ack );
-				  header->msg_data.bind_update.home_address = inet_address_copy( map_address );
-				
-				  /* Set the mobility header information in the datagram fields. */
-				  ipv6_mobility_hdr_insert( dgram, header );
-				  
-				  /* Set the datagram fields into the IPv6 datagram. */
-				  ip_dgram_fields_set( packet, dgram );
-				
-				  /* Refresh the IP packet fields. */
-				  op_pk_nfd_access( packet, "fields", &dgram );
-				
-				  /* Alter the header field size to model the mob msg size. */ 
-				
-				  /* Add the size of the mobility extension header into */
-				  /* the packet. Modify the size of the header fields in   */
-				  /* the IPv6 packet to achieve this.           */
-				
-				  ip_dgram_sup_ipv6_extension_hdr_size_add( &packet, &dgram,
-				      IpC_Procotol_Mobility_Ext_Hdr, (int) ext_hdr_len );
-				
-				  /* Uninstall the event state. */
-				  op_ev_state_install( OPC_NIL, OPC_NIL);
-				    
-				  /* Deliver this IPv6 datagram to the IP module. */
-				  op_pk_send( packet, OUT_STRM );
-				  printf( "HMIPv6 MAP AD: Sending packet!\n" );
+				/* Deliver this IPv6 datagram to the IP module. */
+				op_pk_send( packet, OUT_STRM );
+				printf( "HMIPv6 MAP AD: Sending packet!\n" );
 				}
 				FSM_PROFILE_SECTION_OUT (state2_enter_exec)
 

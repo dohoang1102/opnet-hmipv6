@@ -4,7 +4,7 @@
 
 
 /* This variable carries the header into the object file */
-const char HMIPv6_MAP_pr_cpp [] = "MIL_3_Tfile_Hdr_ 145A 30A modeler 7 4B7420C2 4B7420C2 1 planet12 Student 0 0 none none 0 0 none 0 0 0 0 0 0 0 0 1e80 8                                                                                                                                                                                                                                                                                                                                                                                                         ";
+const char HMIPv6_MAP_pr_cpp [] = "MIL_3_Tfile_Hdr_ 145A 30A modeler 7 4B749F3D 4B749F3D 1 planet12 Student 0 0 none none 0 0 none 0 0 0 0 0 0 0 0 1e80 8                                                                                                                                                                                                                                                                                                                                                                                                         ";
 #include <string.h>
 
 
@@ -212,7 +212,7 @@ bool is_bind_update( Packet* packet ) {
 
     fields = ip_dgram_fields_get( packet );
 
-    /* check the  extionsion types */
+    /* check the  extension types */
     if ( IpC_Procotol_Mobility_Ext_Hdr == fields->protocol ) {
 
       /* Grab the mobility headers */
@@ -277,6 +277,10 @@ Packet* set_source( Packet* packet, std::string src_str ) {
 
 /**
  * Set the destination of a packet to new value.
+ * @param packet - Packet to modify.
+ * @param dest_str - Address to use when setting destination.
+ *
+ * @return The pointer to the packet we modified@return The pointer to the packet we modified.
  */
 Packet* set_destination( Packet* packet, std::string dest_str ) {
 
@@ -315,11 +319,10 @@ address_t get_RCoA( Packet* packet ) {
   FIN( get_RCoA( packet ) ); 
 
   fields = ip_dgram_fields_get( packet );
+
   /* Grab the mobility headers */
   list = ipv6_extension_header_list_get( fields );
   info = (Ipv6T_Mobility_Hdr_Info*) op_prg_list_access( list, OPC_LISTPOS_HEAD );
-
-   
 
   RCoA = inet_address_copy( info->msg_data.bind_update.home_address );
 
@@ -352,12 +355,9 @@ void send_BAck( address_t destination, address_t RCoA ) {
   /* Assign values to members of the field structure. */
   /* Set the source address to be the global address of interface. */
   
-  /* The ha iface ptr must be obtained from the ha iface table. */  
-  // TODO: Get MAP's actuall IP Address
-  //dgram->src_addr     = inet_address_copy( *(module_data_ptr->mipv6_info_ptr->care_of_addr_ptr));
-  //dgram->src_internal_addr  = inet_rtab_addr_convert( dgram->src_addr );
-  dgram->src_addr = inet_address_copy( InetI_Default_v6_Addr );
-  dgram->src_internal_addr = inet_rtab_addr_convert( InetI_Default_v6_Addr );
+  // TODO: Get MAP's actual IP Address
+  dgram->src_addr = inet_address_copy( map_address );
+  dgram->src_internal_addr = inet_rtab_addr_convert( dgram->src_addr );
   
   /* Set the destination address (MN). */  
   dgram->dest_addr          = inet_address_copy( destination );
@@ -395,7 +395,7 @@ void send_BAck( address_t destination, address_t RCoA ) {
   ip_dgram_sup_ipv6_extension_hdr_size_add( &packet, &dgram,
       IpC_Procotol_Mobility_Ext_Hdr, (int) ext_hdr_len );
 
-  /* Uninstall the event state. */
+  /* Un-install the event state. */
   op_ev_state_install( OPC_NIL, OPC_NIL);
     
   /* Deliver this IPv6 datagram to the IP module. */
@@ -497,13 +497,13 @@ tunnel_pkt( IpT_Rte_Module_Data* iprmd_ptr, Packet** packet, InetT_Address sourc
   /* Indicate that the packet is not yet fragmented.      */
   new_datagram->frag = 0;
 
-  /* Set the encapsulation count for sim efficiency.      */
+  /* Set the encapsulation count for simulation efficiency.      */
   new_datagram->encap_count++;
 
   new_datagram->dest_internal_addr = IPC_FAST_ADDR_INVALID;
   new_datagram->src_internal_addr  = IPC_FAST_ADDR_INVALID;
 
-  /*  Set the fields structure inside the ip datagram.    */
+  /* Set the fields structure inside the IP datagram. */
   op_pk_nfd_set( ip_packet, "fields", new_datagram, 
       ip_dgram_fdstruct_copy, ip_dgram_fdstruct_destroy, sizeof (IpT_Dgram_Fields) );
 
@@ -596,20 +596,23 @@ HMIPv6_MAP_state::HMIPv6_MAP (OP_SIM_CONTEXT_ARG_OPT)
 			FSM_STATE_ENTER_UNFORCED_NOLABEL (0, "init", "HMIPv6_MAP [init enter execs]")
 				FSM_PROFILE_SECTION_IN ("HMIPv6_MAP [init enter execs]", state0_enter_exec)
 				{
-				/***
-				 * 1) Register process in the global table.
-				 * 2) Obtain model parameters
-				 *      e.g. operation mode
-				 *
-				 *
-				 * Declared in State Variables:
-				 *  - selfId
-				 *  - parentId
-				 *  - selfHndl
-				 *  - parentHndl
-				 *  - modelName 
-				 *  - procHndl
-				 ***/
+				/*
+				** 1) Register process in the global table.
+				** 2) Obtain model parameters
+				**      e.g. operation mode
+				**
+				**
+				** Declared in State Variables:
+				**  - selfId
+				**  - parentId
+				**  - selfHndl
+				**  - parentHndl
+				**  - modelName 
+				**  - procHndl
+				*/
+				
+				
+				
 				
 				/* Get self id and our parent's id */
 				selfId   = op_id_self();
@@ -649,7 +652,7 @@ HMIPv6_MAP_state::HMIPv6_MAP (OP_SIM_CONTEXT_ARG_OPT)
 
 
 			/** state (init) transition processing **/
-			FSM_TRANSIT_ONLY ((SELF_NOTIFY), 1, state1_enter_exec, ;, init, "SELF_NOTIFY", "", "init", "idle", "tr_16", "HMIPv6_MAP [init -> idle : SELF_NOTIFY / ]")
+			FSM_TRANSIT_FORCE (1, state1_enter_exec, ;, "default", "", "init", "idle", "tr_16", "HMIPv6_MAP [init -> idle : default / ]")
 				/*---------------------------------------------------------*/
 
 
@@ -665,16 +668,16 @@ HMIPv6_MAP_state::HMIPv6_MAP (OP_SIM_CONTEXT_ARG_OPT)
 			FSM_STATE_EXIT_UNFORCED (1, "idle", "HMIPv6_MAP [idle exit execs]")
 				FSM_PROFILE_SECTION_IN ("HMIPv6_MAP [idle exit execs]", state1_exit_exec)
 				{
-				/***
-				 * Sate Variables:
-				 *   Packet * currpacket 
-				 *   bool bu_packet
-				 *   bool redirect 
-				 *   map<string,string> bind_cache
-				 *
-				 * Purpose: Inspect incoming packets 
-				 * Author: Brian Gianforcaro (b.gianfo@gmail.com)
-				 */
+				/*
+				** Sate Variables:
+				**   Packet * currpacket 
+				**   bool bu_packet
+				**   bool redirect 
+				**   map<string,string> bind_cache
+				**
+				** Purpose: Inspect incoming packets 
+				** Author: Brian Gianforcaro (b.gianfo@gmail.com)
+				*/
 				
 				if( op_intrpt_type() == OPC_INTRPT_STRM ) {
 				
@@ -733,10 +736,11 @@ HMIPv6_MAP_state::HMIPv6_MAP (OP_SIM_CONTEXT_ARG_OPT)
 			FSM_STATE_ENTER_FORCED (2, "BU", state2_enter_exec, "HMIPv6_MAP [BU enter execs]")
 				FSM_PROFILE_SECTION_IN ("HMIPv6_MAP [BU enter execs]", state2_enter_exec)
 				{
-				/**
-				 * Modify Source Address if RCoA is active.
-				 * Relay currpacket to PPP
-				 */
+				/*
+				** - Process the packet since it is a Binding Update.
+				** - Add Link care of address and Regional care of address to the MAP bind cache.
+				** - And send a binding Acknowledgement.
+				*/
 				
 				puts( "HMIPv6 MAP: Process Binding Update\n" );
 				
@@ -747,9 +751,10 @@ HMIPv6_MAP_state::HMIPv6_MAP (OP_SIM_CONTEXT_ARG_OPT)
 				/* Insert address into cache */
 				bind_cache[RCoA] = LCoA;
 				
-				/* Send a binding acknoledgement to the MN */
+				/* Send a binding acknowledgement to the MN */
 				send_BAck( stringToAddress( LCoA ), stringToAddress( RCoA ) );
 				
+				/* Destroy packet since we are done with it */
 				op_pk_destroy( currpacket );
 				}
 				FSM_PROFILE_SECTION_OUT (state2_enter_exec)
@@ -775,12 +780,13 @@ HMIPv6_MAP_state::HMIPv6_MAP (OP_SIM_CONTEXT_ARG_OPT)
 				FSM_PROFILE_SECTION_IN ("HMIPv6_MAP [TNL_IN enter execs]", state3_enter_exec)
 				{
 				/*
+				**
+				** Author: Brian Gianforcaro (b.gianfo@gmail.com)
+				** Action: Update variables to indicate that RCoA is activ
+				** 
 				** Sate Variables:
 				**   Packet * currpacket 
 				**   std::map<std::string, std::string> bind_cache;
-				**
-				** Author: Brian Gianforcaro (b.gianfo@gmail.com)
-				** Action: Update variables to indicate that RCoA is active
 				*/
 				
 				/* Packet coming in from top of MAP down into */
@@ -822,22 +828,22 @@ HMIPv6_MAP_state::HMIPv6_MAP (OP_SIM_CONTEXT_ARG_OPT)
 			FSM_STATE_ENTER_FORCED (4, "TNL_OUT", state4_enter_exec, "HMIPv6_MAP [TNL_OUT enter execs]")
 				FSM_PROFILE_SECTION_IN ("HMIPv6_MAP [TNL_OUT enter execs]", state4_enter_exec)
 				{
-				/**
-				 * Sate Variables:
-				 *   Packet * currpacket 
-				 *   bool bu_packet
-				 *   bool redirect 
-				 *
-				 * Author: Brian Gianforcaro (b.gianfo@gmail.com)
-				 * Action: Update variables to indicate that RCoA is active
-				 */
+				/*
+				** Sate Variables:
+				**   Packet * currpacket 
+				**   bool bu_packet
+				**   bool redirect 
+				**
+				** Author: Brian Gianforcaro (b.gianfo@gmail.com)
+				** Action: Update variables to indicate that RCoA is active
+				*/
 				
 				/* Packet coming from inside MAP needs to be tunneled out */
 				puts( "HMIPv6 MAP: Tunnel packet out\n" );
 				
 				std::map<string,string>::iterator it;
 				
-				/* Obtaion the currpackets regional care of address */
+				/* Obtain the currpackets regional care of address */
 				std::string LCoA = addressToString( src_address( currpacket ) );
 				std::string RCoA("");
 				/* look up the RCoA care of address for this */
@@ -848,7 +854,7 @@ HMIPv6_MAP_state::HMIPv6_MAP (OP_SIM_CONTEXT_ARG_OPT)
 				  }
 				}
 				
-				// Set the destionation address of the currpacket
+				// Set the destination address of the currpacket
 				// to the cached local care of address 
 				//currpacket = set_source( currpacket, RCoA );
 				

@@ -4,7 +4,7 @@
 
 
 /* This variable carries the header into the object file */
-const char HMIPv6_MN_NEW_pr_cpp [] = "MIL_3_Tfile_Hdr_ 145A 30A modeler 7 4B742125 4B742125 1 planet12 Student 0 0 none none 0 0 none 0 0 0 0 0 0 0 0 1e80 8                                                                                                                                                                                                                                                                                                                                                                                                         ";
+const char HMIPv6_MN_NEW_pr_cpp [] = "MIL_3_Tfile_Hdr_ 145A 30A modeler 7 4B749F39 4B749F39 1 planet12 Student 0 0 none none 0 0 none 0 0 0 0 0 0 0 0 1e80 8                                                                                                                                                                                                                                                                                                                                                                                                         ";
 #include <string.h>
 
 
@@ -229,7 +229,9 @@ bool is_map_advert( Packet* packet ) {
 }
 
 /**
- * Obtain the MAP Address from the 
+ * Obtain the MAP Address from the given packet.
+ * @param packet - The map advertisement packet.
+ * @return - The MAP address from the advertisement.
  */
 address_t get_map_address( Packet* packet ) { 
  
@@ -253,6 +255,7 @@ address_t get_map_address( Packet* packet ) {
 
 /**
  * Generate a regional care of address.
+ * @return a newly generated regional care of address.
  */
 address_t generate_rcoa( void ) {
   address_t RCoA;
@@ -288,6 +291,7 @@ address_t generate_rcoa( void ) {
 
 /**
  * Obtain the current ip_address of the mobile node
+ * @return the link care of address. 
  */
 address_t get_lcoa( void ) {
   address_t LCoA;
@@ -304,6 +308,7 @@ address_t get_lcoa( void ) {
 
 /**
  * Determine if our ip_address had changed
+ * @return true if changed, false if not.
  */
 bool has_lcoa_changed( void ) {
   address_t my_address;
@@ -324,7 +329,8 @@ bool has_lcoa_changed( void ) {
  * This function creates and sends an IPv6 datagram 
  * that carries a Binding Update MIPv6 message.    
  *
- * @param dest_addr - Destination Address
+ * @param dest_addr - Destination address to send bu.
+ * @param suggestedRCoA - The regional care of address we would like to be ours.
  */
 static void
 bu_msg_send( address_t dest_addr, address_t suggestedRCoA ) {
@@ -388,7 +394,7 @@ bu_msg_send( address_t dest_addr, address_t suggestedRCoA ) {
   ip_dgram_sup_ipv6_extension_hdr_size_add( &packet, &dgram,
       IpC_Procotol_Mobility_Ext_Hdr, (int) ext_hdr_len );
 
-  /* Uninstall the event state. */
+  /* Un-install the event state. */
   op_ev_state_install( OPC_NIL, OPC_NIL);
     
   /* Deliver this IPv6 datagram to the IP module. */
@@ -477,19 +483,19 @@ HMIPv6_MN_NEW_state::HMIPv6_MN_NEW (OP_SIM_CONTEXT_ARG_OPT)
 			FSM_STATE_ENTER_UNFORCED_NOLABEL (0, "init", "HMIPv6_MN_NEW [init enter execs]")
 				FSM_PROFILE_SECTION_IN ("HMIPv6_MN_NEW [init enter execs]", state0_enter_exec)
 				{
-				/***
-				 * 1) Register process in the global table.
-				 * 2) Obtain model parameters
-				 *      e.g. operation mode
-				 *
-				 * Declared in State Variables:
-				 *  - selfId
-				 *  - parentId
-				 *  - selfHndl
-				 *  - parentHndl
-				 *  - modelName 
-				 *  - procHndl
-				 ***/
+				/*
+				** 1) Register process in the global table.
+				** 2) Obtain model parameters
+				**      e.g. operation mode
+				**
+				** Declared in State Variables:
+				**  - selfId
+				**  - parentId
+				**  - selfHndl
+				**  - parentHndl
+				**  - modelName 
+				**  - procHndl
+				*/
 				
 				/* Get self id and our parent's id */
 				selfId   = op_id_self();
@@ -531,7 +537,7 @@ HMIPv6_MN_NEW_state::HMIPv6_MN_NEW (OP_SIM_CONTEXT_ARG_OPT)
 
 
 			/** state (init) transition processing **/
-			FSM_TRANSIT_ONLY ((SELF_NOTIF), 1, state1_enter_exec, ;, init, "SELF_NOTIF", "", "init", "GET MAP", "tr_14", "HMIPv6_MN_NEW [init -> GET MAP : SELF_NOTIF / ]")
+			FSM_TRANSIT_FORCE (1, state1_enter_exec, ;, "default", "", "init", "GET MAP", "tr_14", "HMIPv6_MN_NEW [init -> GET MAP : default / ]")
 				/*---------------------------------------------------------*/
 
 
@@ -556,7 +562,7 @@ HMIPv6_MN_NEW_state::HMIPv6_MN_NEW (OP_SIM_CONTEXT_ARG_OPT)
 				      /* Check if the packet is a MAP Advertisement */
 				      if ( is_map_advert( currpacket ) ) {
 				        /* Snag that address ! */
-				        puts( "HMIPv6 MN: Got MAP Advertisment\n" );
+				        puts( "HMIPv6 MN: Got MAP Advertisement\n" );
 				        map_address = get_map_address( currpacket );
 				        have_map_addr = true;
 				      }
@@ -626,10 +632,7 @@ HMIPv6_MN_NEW_state::HMIPv6_MN_NEW (OP_SIM_CONTEXT_ARG_OPT)
 				
 				        /* Check that this is the tunnel end point */
 				        if ( tunneled( currpacket, lcoa ) ) {
-				          puts( "HMIPv6 MN: tunneled packet is at endpoint. \n" );
-				          /* Decapsulate packet and foreword too ip module */
-				          decapsulate_pkt( &currpacket );
-				          op_pk_send( currpacket, OUT_STRM );
+				          tunneld = true;
 				          break;
 				        }
 				      } 
@@ -683,7 +686,7 @@ HMIPv6_MN_NEW_state::HMIPv6_MN_NEW (OP_SIM_CONTEXT_ARG_OPT)
 				lcoa = inet_address_copy( get_lcoa() ); 
 				
 				/* If we don't have a RCoA yet, generate one */
-				if ( inet_address_equal(rcoa, InetI_Invalid_Addr) ) { 
+				if ( inet_address_equal( rcoa, InetI_Invalid_Addr ) ) { 
 				  rcoa = generate_rcoa();
 				}
 				
@@ -711,9 +714,31 @@ HMIPv6_MN_NEW_state::HMIPv6_MN_NEW (OP_SIM_CONTEXT_ARG_OPT)
 
 			/** state (GOT_TNLD) enter executives **/
 			FSM_STATE_ENTER_FORCED (4, "GOT_TNLD", state4_enter_exec, "HMIPv6_MN_NEW [GOT_TNLD enter execs]")
+				FSM_PROFILE_SECTION_IN ("HMIPv6_MN_NEW [GOT_TNLD enter execs]", state4_enter_exec)
+				{
+				/*
+				** Since packet is at the end point it can be decapsulated and delivered.
+				*/
+				
+				puts( "HMIPv6 MN: tunneled packet is at endpoint.\n" );
+				op_pk_print( currpacket );
+				
+				/* Decapsulate packet and foreword onto IP module */
+				decapsulate_pkt( &currpacket );
+				op_pk_send( currpacket, OUT_STRM );
+				
+				}
+				FSM_PROFILE_SECTION_OUT (state4_enter_exec)
 
 			/** state (GOT_TNLD) exit executives **/
 			FSM_STATE_EXIT_FORCED (4, "GOT_TNLD", "HMIPv6_MN_NEW [GOT_TNLD exit execs]")
+				FSM_PROFILE_SECTION_IN ("HMIPv6_MN_NEW [GOT_TNLD exit execs]", state4_exit_exec)
+				{
+				/* Reset tunneld state */
+				
+				tunneld = false;
+				}
+				FSM_PROFILE_SECTION_OUT (state4_exit_exec)
 
 
 			/** state (GOT_TNLD) transition processing **/
