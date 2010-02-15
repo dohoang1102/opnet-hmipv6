@@ -1,7 +1,7 @@
 
 [Log Info:]
 version :	1
-row_count :	11
+row_count :	67
 max_log_row :	5000
 max_file_row :	1000
 hide_date :	TRUE
@@ -9,7 +9,7 @@ include_severity :	TRUE
 file_count :	1
 
 [File List:]
-5252_02-07-2010_03.21.02	11	03:21:02 Feb 07 2010	03:21:13 Feb 07 2010
+6056_02-15-2010_15.55.47	67	15:55:47 Feb 15 2010	15:57:11 Feb 15 2010
 
 [Column Dependency List:]
 dependency_count :	1
@@ -46,7 +46,19 @@ incident_count :	0
 log_handle_column_count :	3
 5	Category	2	Configuration
 6	Class	2	Application
+7	SubClass	2	Background Traffic
+incident_count :	0
+
+log_handle_column_count :	3
+5	Category	2	Configuration
+6	Class	2	Application
 7	SubClass	2	Custom Application
+incident_count :	0
+
+log_handle_column_count :	3
+5	Category	2	Configuration
+6	Class	2	Application
+7	SubClass	2	Phase
 incident_count :	0
 
 log_handle_column_count :	3
@@ -75,14 +87,32 @@ incident_count :	0
 
 log_handle_column_count :	3
 5	Category	2	Configuration
+6	Class	2	IGMP Host
+7	SubClass	2	Model_Configuration_Warning
+incident_count :	0
+
+log_handle_column_count :	3
+5	Category	2	Configuration
+6	Class	2	IP
+7	SubClass	2	Auto_Assignment_Results
+incident_count :	1
+
+log_handle_column_count :	3
+5	Category	2	Configuration
 6	Class	2	IP
 7	SubClass	2	Model_Configuration_Error
-incident_count :	5
+incident_count :	0
 
 log_handle_column_count :	3
 5	Category	2	Configuration
 6	Class	2	IP
 7	SubClass	2	Model_Configuration_Warning
+incident_count :	23
+
+log_handle_column_count :	3
+5	Category	2	Configuration
+6	Class	2	IP
+7	SubClass	2	QoS
 incident_count :	0
 
 log_handle_column_count :	3
@@ -119,6 +149,18 @@ log_handle_column_count :	3
 5	Category	2	Configuration
 6	Class	2	RIP
 7	SubClass	2	Routing Table Configuration
+incident_count :	0
+
+log_handle_column_count :	3
+5	Category	2	Configuration
+6	Class	2	RSVP
+7	SubClass	2	Model_Configuration_Error
+incident_count :	0
+
+log_handle_column_count :	3
+5	Category	2	Configuration
+6	Class	2	SIP
+7	SubClass	2	Signaling
 incident_count :	0
 
 log_handle_column_count :	3
@@ -185,7 +227,7 @@ log_handle_column_count :	3
 5	Category	2	Configuration
 6	Class	2	Transport_Interface
 7	SubClass	2	Setup
-incident_count :	0
+incident_count :	1
 
 log_handle_column_count :	3
 5	Category	2	Configuration
@@ -203,6 +245,18 @@ log_handle_column_count :	3
 5	Category	2	Low-Level
 6	Class	2	Application
 7	SubClass	2	Custom Application
+incident_count :	0
+
+log_handle_column_count :	3
+5	Category	2	Low-Level
+6	Class	2	Application
+7	SubClass	2	Phase
+incident_count :	0
+
+log_handle_column_count :	3
+5	Category	2	Low-Level
+6	Class	2	IGMP Host
+7	SubClass	2	Model_Internals_Error
 incident_count :	0
 
 log_handle_column_count :	3
@@ -281,7 +335,7 @@ log_handle_column_count :	3
 5	Category	2	Low-Level
 6	Class	2	Simulation
 7	SubClass	2	Message
-incident_count :	3
+incident_count :	38
 
 log_handle_column_count :	3
 5	Category	2	Low-Level
@@ -357,6 +411,12 @@ incident_count :	0
 
 log_handle_column_count :	3
 5	Category	2	Protocol
+6	Class	2	ICMP
+7	SubClass	2	Timeout
+incident_count :	0
+
+log_handle_column_count :	3
+5	Category	2	Protocol
 6	Class	2	IP
 7	SubClass	2	Higher Layer Protocol Register
 incident_count :	0
@@ -413,6 +473,12 @@ log_handle_column_count :	3
 5	Category	2	Protocol
 6	Class	2	RIP
 7	SubClass	2	Timeouts
+incident_count :	0
+
+log_handle_column_count :	3
+5	Category	2	Protocol
+6	Class	2	RSVP
+7	SubClass	2	Model Configuration Error
 incident_count :	0
 
 log_handle_column_count :	3
@@ -503,7 +569,7 @@ log_handle_column_count :	3
 5	Category	2	Results
 6	Class	2	RIP
 7	SubClass	2	Performance
-incident_count :	0
+incident_count :	1
 
 log_handle_column_count :	3
 5	Category	2	Results

@@ -4,7 +4,7 @@
 
 
 /* This variable carries the header into the object file */
-const char HMIPv6_MAP_AD_GEN_pr_cpp [] = "MIL_3_Tfile_Hdr_ 145A 30A op_runsim 7 4B74CB6F 4B74CB6F 1 planet12 Student 0 0 none none 0 0 none 0 0 0 0 0 0 0 0 1e80 8                                                                                                                                                                                                                                                                                                                                                                                                       ";
+const char HMIPv6_MAP_AD_GEN_pr_cpp [] = "MIL_3_Tfile_Hdr_ 145A 30A op_runsim 7 4B796E85 4B796E85 1 planet12 Student 0 0 none none 0 0 none 0 0 0 0 0 0 0 0 1e80 8                                                                                                                                                                                                                                                                                                                                                                                                       ";
 #include <string.h>
 
 
@@ -189,33 +189,60 @@ HMIPv6_MAP_AD_GEN_state::HMIPv6_MAP_AD_GEN (OP_SIM_CONTEXT_ARG_OPT)
 				**   else, continue.
 				*/
 				puts(" What's up from MAP AD!" );
+				
+				Objid parentid = op_topo_parent(op_id_self());
+				Prohandle pro = op_pro_self();
+				
 				/* Obtain the values assigned to the various attributes	*/
+				Objid macid = op_id_from_name( parentid, OPC_OBJTYPE_PROC, "wireless_lan_mac" );
 				
-				Objid macid = op_id_from_name( op_topo_parent(op_id_self()), 
-				    OPC_OBJTYPE_PROC, "wireless_lan_mac" );
-				
-				
-				Objid paramid;
-				op_ima_obj_attr_get( macid, "Wireless LAN Parameters", &paramid );
-				
-				Objid mac_param_child = op_topo_child(paramid, OPC_OBJTYPE_GENERIC, 0);
-				    
+				/* Get access point functionality for this module */
 				int ap_flag;
+				Objid paramid;
+				Objid mac_param_child;
+				op_ima_obj_attr_get( macid, "Wireless LAN Parameters", &paramid );
+				mac_param_child = op_topo_child( paramid, OPC_OBJTYPE_GENERIC, 0 );
 				op_ima_obj_attr_get( mac_param_child, "Access Point Functionality", &ap_flag );
 				
+				/* Register this shizzle */
+				
+				/* Get the name of the process model. */
+				char modelname[40];
+				op_ima_obj_attr_get( op_id_self(), "process model" ,modelname );
+				
+				OmsT_Pr_Handle procHndl;
+				/* Register the process in the model-wide registry. */
+				procHndl = oms_pr_process_register( parentid, op_id_self(), pro, modelname );
+				
+				/* Register the protocol attribute and the module 	*/
+				/* Object ID in the registry.						*/
+				oms_pr_attr_set( procHndl, 
+				  "protocol" , OMSC_PR_STRING, "ip-ip (MIP)", 
+				  "module ID", OMSC_PR_OBJID , op_id_self() , OPC_NIL );
+				
+				
+				/* Get process name */
 				char name[100];
 				op_ima_obj_hname_get( op_id_self(), name, 100 );
 				
 				/* If this isn't an access point, don't generate advertisements */
 				if ( ap_flag != OPC_BOOLINT_ENABLED ) { 
+				
 					printf( "HMIPv6 MAP AD: Destroying HMIPv6 MN Advertiser in %s\n", name ); 
 				  op_pro_destroy( op_pro_self() );
 				  disabled = true;
+				
 				} else {
+				
 				  disabled = false;
 					printf( "HMIPv6 MAP AD: Starting HMIPv6 MN Advertiser in %s\n", name ); 
-				  op_intrpt_schedule_self(op_sim_time() + TIME_LIMIT, TIMER_INTERRUPT); 
+				  op_intrpt_schedule_self( op_sim_time() + TIME_LIMIT, TIMER_INTERRUPT ); 
+				
 				  ipv6_extension_header_package_init();
+				
+				  int protoNum = IpC_Protocol_Ip_Mip;
+					Inet_Higher_Layer_Protocol_Register( "ip-ip (MIP)", &protoNum );
+				
 				}
 				
 				
@@ -364,7 +391,7 @@ HMIPv6_MAP_AD_GEN_state::HMIPv6_MAP_AD_GEN (OP_SIM_CONTEXT_ARG_OPT)
 
 
 			/** state (FAIL) transition processing **/
-			FSM_TRANSIT_MISSING ("FAIL")
+			FSM_TRANSIT_FORCE (3, state3_enter_exec, ;, "default", "", "FAIL", "FAIL", "tr_6", "HMIPv6_MAP_AD_GEN [FAIL -> FAIL : default / ]")
 				/*---------------------------------------------------------*/
 
 
