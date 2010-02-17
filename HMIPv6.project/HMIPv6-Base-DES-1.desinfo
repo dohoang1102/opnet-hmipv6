@@ -15,6 +15,7 @@ mem_opt.grow_pool_planks                     default     TRUE
 mem_optimize                                 default     TRUE
 mem_shred                                    default     FALSE
 mod_dirs                                     env. file   C:\Users\Student\op_models,
+                                                         C:\Users\Student\Desktop\aodv\,
                                                          C:\Users\Student\Desktop\sims\HMIPv6-simulation\external\,
                                                          C:\Users\Student\Desktop\sims,
                                                          C:\Users\Student\Desktop\sims\archives,
@@ -278,7 +279,7 @@ comp_flags_64bit                             env. file   "/GS- "
 comp_flags_c++_specific                      env. file   <null>
 comp_flags_c_specific                        env. file   <null>
 comp_flags_common                            env. file   "/W3 /D_CRT_SECURE_NO_DEPRECATE  /IC:\\PROGRA~1\\OPNET\\145~1.A\\models\\std\\include  /IC:\\Users\\Student\\Desktop\\sims\\HMIPv6-simulation\\include"
-comp_flags_devel                             env. file   "/Z7 /Od"
+comp_flags_devel                             env. file   "/Zi /Od"
 comp_flags_mt                                env. file   <null>
 comp_flags_optim                             env. file   "/GS- "
 comp_globals_export                          default     FALSE

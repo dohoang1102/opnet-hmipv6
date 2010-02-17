@@ -4,7 +4,7 @@
 
 
 /* This variable carries the header into the object file */
-const char HMIPv6_MAP_AD_GEN_pr_cpp [] = "MIL_3_Tfile_Hdr_ 145A 30A op_runsim 7 4B796E85 4B796E85 1 planet12 Student 0 0 none none 0 0 none 0 0 0 0 0 0 0 0 1e80 8                                                                                                                                                                                                                                                                                                                                                                                                       ";
+const char HMIPv6_MAP_AD_GEN_pr_cpp [] = "MIL_3_Tfile_Hdr_ 145A 30A modeler 7 4B7B4523 4B7B4523 1 planet12 Student 0 0 none none 0 0 none 0 0 0 0 0 0 0 0 1e80 8                                                                                                                                                                                                                                                                                                                                                                                                         ";
 #include <string.h>
 
 
@@ -76,6 +76,7 @@ class HMIPv6_MAP_AD_GEN_state
 		bool	                   		ap_enable                                       ;
 		bool	                   		disabled                                        ;
 		InetT_Address	          		map_address                                     ;
+		Ici*	                   		net_ici                                         ;
 
 		/* FSM code */
 		void HMIPv6_MAP_AD_GEN (OP_SIM_CONTEXT_ARG_OPT);
@@ -98,6 +99,7 @@ VosT_Obtype HMIPv6_MAP_AD_GEN_state::obtype = (VosT_Obtype)OPC_NIL;
 #define ap_enable               		op_sv_ptr->ap_enable
 #define disabled                		op_sv_ptr->disabled
 #define map_address             		op_sv_ptr->map_address
+#define net_ici                 		op_sv_ptr->net_ici
 
 /* These macro definitions will define a local variable called	*/
 /* "op_sv_ptr" in each function containing a FIN statement.	*/
@@ -130,6 +132,7 @@ enum { _op_block_origin = __LINE__ };
 #undef ap_enable
 #undef disabled
 #undef map_address
+#undef net_ici
 
 /* Access from C kernel using C linkage */
 extern "C"
@@ -243,6 +246,10 @@ HMIPv6_MAP_AD_GEN_state::HMIPv6_MAP_AD_GEN (OP_SIM_CONTEXT_ARG_OPT)
 				  int protoNum = IpC_Protocol_Ip_Mip;
 					Inet_Higher_Layer_Protocol_Register( "ip-ip (MIP)", &protoNum );
 				
+				
+				  net_ici = op_ici_create( "ip_encap_req_v4" );
+				  op_ici_attr_set( net_ici, "connection_class", CONNECTION_CLASS_1 );
+				
 				}
 				
 				
@@ -319,6 +326,8 @@ HMIPv6_MAP_AD_GEN_state::HMIPv6_MAP_AD_GEN (OP_SIM_CONTEXT_ARG_OPT)
 				dgram = ip_dgram_fdstruct_create();
 				dgram->src_addr = inet_support_address_from_node_id_get( module, InetC_Addr_Family_v6 );
 				dgram->src_internal_addr = inet_rtab_addr_convert( dgram->src_addr );
+				dgram->dest_addr = inet_support_address_from_node_id_get( module, InetC_Addr_Family_v6 );
+				dgram->dest_internal_addr = inet_rtab_addr_convert( dgram->dest_addr );
 				dgram->orig_len = ext_hdr_len;
 				dgram->frag_len = ext_hdr_len;
 				dgram->ttl      = 255;
@@ -354,10 +363,12 @@ HMIPv6_MAP_AD_GEN_state::HMIPv6_MAP_AD_GEN (OP_SIM_CONTEXT_ARG_OPT)
 				    IpC_Procotol_Mobility_Ext_Hdr, (int) ext_hdr_len );
 				
 				/* Un-install the event state. */
-				op_ev_state_install( OPC_NIL, OPC_NIL);
-				  
-				/* Deliver this IPv6 datagram to the IP module. */
-				op_pk_send( packet, OUT_STRM );
+				 //op_ev_state_install( OPC_NIL, OPC_NIL);
+				/* Use ICI between this process and ip_encap */
+				op_ici_attr_set( net_ici, "src_addr", dgram->src_addr );
+				op_ici_install( net_ici );
+				/* Deliver this IPv6 datagram to the IP_encap module. */
+				op_pk_send_forced( packet, OUT_STRM );
 				printf( "HMIPv6 MAP AD: Sending packet!\n" );
 				}
 				FSM_PROFILE_SECTION_OUT (state2_enter_exec)
@@ -538,6 +549,11 @@ _op_HMIPv6_MAP_AD_GEN_svar (void * gen_ptr, const char * var_name, void ** var_p
 	if (strcmp ("map_address" , var_name) == 0)
 		{
 		*var_p_ptr = (void *) (&prs_ptr->map_address);
+		FOUT
+		}
+	if (strcmp ("net_ici" , var_name) == 0)
+		{
+		*var_p_ptr = (void *) (&prs_ptr->net_ici);
 		FOUT
 		}
 	*var_p_ptr = (void *)OPC_NIL;
