@@ -4,7 +4,7 @@
 
 
 /* This variable carries the header into the object file */
-const char HMIPv6_MAP_AD_GEN_pr_cpp [] = "MIL_3_Tfile_Hdr_ 145A 30A modeler 7 4B7B4523 4B7B4523 1 planet12 Student 0 0 none none 0 0 none 0 0 0 0 0 0 0 0 1e80 8                                                                                                                                                                                                                                                                                                                                                                                                         ";
+const char HMIPv6_MAP_AD_GEN_pr_cpp [] = "MIL_3_Tfile_Hdr_ 145A 30A modeler 7 4B7DAA25 4B7DAA25 1 planet12 Student 0 0 none none 0 0 none 0 0 0 0 0 0 0 0 1e80 8                                                                                                                                                                                                                                                                                                                                                                                                         ";
 #include <string.h>
 
 
@@ -324,10 +324,13 @@ HMIPv6_MAP_AD_GEN_state::HMIPv6_MAP_AD_GEN (OP_SIM_CONTEXT_ARG_OPT)
 				
 				/* Create IP datagram fields data structure. */
 				dgram = ip_dgram_fdstruct_create();
+				
 				dgram->src_addr = inet_support_address_from_node_id_get( module, InetC_Addr_Family_v6 );
 				dgram->src_internal_addr = inet_rtab_addr_convert( dgram->src_addr );
-				dgram->dest_addr = inet_support_address_from_node_id_get( module, InetC_Addr_Family_v6 );
+				
+				dgram->dest_addr = inet_address_copy (InetI_Ipv6_All_Nodes_LL_Mcast_Addr);
 				dgram->dest_internal_addr = inet_rtab_addr_convert( dgram->dest_addr );
+				
 				dgram->orig_len = ext_hdr_len;
 				dgram->frag_len = ext_hdr_len;
 				dgram->ttl      = 255;
@@ -366,9 +369,27 @@ HMIPv6_MAP_AD_GEN_state::HMIPv6_MAP_AD_GEN (OP_SIM_CONTEXT_ARG_OPT)
 				 //op_ev_state_install( OPC_NIL, OPC_NIL);
 				/* Use ICI between this process and ip_encap */
 				op_ici_attr_set( net_ici, "src_addr", dgram->src_addr );
+				op_ici_attr_set( net_ici, "dest_addr", dgram->dest_addr );
+				op_ici_attr_set( net_ici, "out_intf_index", 0 );
+				op_ici_attr_set( net_ici, "multicast_major_port", 0 );
+				op_ici_attr_set( net_ici, "multicast_minor_port", 0 );
+				op_ici_attr_set( net_ici, "connection_class", CONNECTION_CLASS_1 );
+				/*
+				op_ici_attr_set( net_ici, "destroy_pkt", OPC_FALSE );
+				op_ici_attr_set( net_ici, "higher_layer", OPC_TRUE);
+				*/
+				
+				
+				op_pk_encap_flag_set( packet, 1);
+				
+				/* Install ICI */
 				op_ici_install( net_ici );
+				
 				/* Deliver this IPv6 datagram to the IP_encap module. */
 				op_pk_send_forced( packet, OUT_STRM );
+				
+				op_ici_install( OPC_NIL );
+				
 				printf( "HMIPv6 MAP AD: Sending packet!\n" );
 				}
 				FSM_PROFILE_SECTION_OUT (state2_enter_exec)
