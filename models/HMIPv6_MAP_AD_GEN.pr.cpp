@@ -4,7 +4,7 @@
 
 
 /* This variable carries the header into the object file */
-const char HMIPv6_MAP_AD_GEN_pr_cpp [] = "MIL_3_Tfile_Hdr_ 145A 30A modeler 7 4B7DAA25 4B7DAA25 1 planet12 Student 0 0 none none 0 0 none 0 0 0 0 0 0 0 0 1e80 8                                                                                                                                                                                                                                                                                                                                                                                                         ";
+const char HMIPv6_MAP_AD_GEN_pr_cpp [] = "MIL_3_Tfile_Hdr_ 145A 30A modeler 7 4B99385C 4B99385C 1 planet12 Student 0 0 none none 0 0 none 0 0 0 0 0 0 0 0 1e80 8                                                                                                                                                                                                                                                                                                                                                                                                         ";
 #include <string.h>
 
 
@@ -77,6 +77,8 @@ class HMIPv6_MAP_AD_GEN_state
 		bool	                   		disabled                                        ;
 		InetT_Address	          		map_address                                     ;
 		Ici*	                   		net_ici                                         ;
+		Ici*	                   		command_ici                                     ;
+		Ici*	                   		arp_ici                                         ;
 
 		/* FSM code */
 		void HMIPv6_MAP_AD_GEN (OP_SIM_CONTEXT_ARG_OPT);
@@ -100,6 +102,8 @@ VosT_Obtype HMIPv6_MAP_AD_GEN_state::obtype = (VosT_Obtype)OPC_NIL;
 #define disabled                		op_sv_ptr->disabled
 #define map_address             		op_sv_ptr->map_address
 #define net_ici                 		op_sv_ptr->net_ici
+#define command_ici             		op_sv_ptr->command_ici
+#define arp_ici                 		op_sv_ptr->arp_ici
 
 /* These macro definitions will define a local variable called	*/
 /* "op_sv_ptr" in each function containing a FIN statement.	*/
@@ -133,6 +137,8 @@ enum { _op_block_origin = __LINE__ };
 #undef disabled
 #undef map_address
 #undef net_ici
+#undef command_ici
+#undef arp_ici
 
 /* Access from C kernel using C linkage */
 extern "C"
@@ -243,13 +249,19 @@ HMIPv6_MAP_AD_GEN_state::HMIPv6_MAP_AD_GEN (OP_SIM_CONTEXT_ARG_OPT)
 				
 				  ipv6_extension_header_package_init();
 				
-				  int protoNum = IpC_Protocol_Ip_Mip;
+				  /* Register the protocol attribute and the module 	*/
+				  /* Object ID in the registry.						*/
+				  /*
+				  oms_pr_attr_set( procHndl,
+				      "protocol" , OMSC_PR_STRING, "hmipv6-ad", OPC_NIL );
+				      */
+				
+				  int protoNum = IpC_Protocol_Unspec;
 					Inet_Higher_Layer_Protocol_Register( "ip-ip (MIP)", &protoNum );
 				
-				
+				  //arp_ici = op_ici_create( "ip_arp_req_v4" );
 				  net_ici = op_ici_create( "ip_encap_req_v4" );
 				  op_ici_attr_set( net_ici, "connection_class", CONNECTION_CLASS_1 );
-				
 				}
 				
 				
@@ -258,6 +270,40 @@ HMIPv6_MAP_AD_GEN_state::HMIPv6_MAP_AD_GEN (OP_SIM_CONTEXT_ARG_OPT)
 
 			/** state (init) exit executives **/
 			FSM_STATE_EXIT_FORCED (0, "init", "HMIPv6_MAP_AD_GEN [init exit execs]")
+				FSM_PROFILE_SECTION_IN ("HMIPv6_MAP_AD_GEN [init exit execs]", state0_exit_exec)
+				{
+				/*
+				Objid parentid = op_topo_parent( op_id_self() );
+				
+				// Obtain the values assigned to the various attributes
+				Objid udpid = op_id_from_name( parentid, OPC_OBJTYPE_PROC, "udp" );
+				
+				int input_strm;
+				int output_strm;
+				
+				// Determine the input and output stream indices.
+				oms_tan_neighbor_streams_find( op_id_self(), udpid, &input_strm, &output_strm );
+				
+				// Issue the CREATE_PORT command.
+				command_ici = op_ici_create( "udp_command_v3" );
+				
+				op_ici_attr_set( command_ici, "local_port", 999 );
+				op_ici_install( command_ici );
+				op_intrpt_force_remote( UDPC_COMMAND_CREATE_PORT, udpid );
+				
+				// Get the status indication from the ici
+				int status = 0;
+				op_ici_attr_get( command_ici, "status", &status ); 
+				
+				// Check for possible UDP error.
+				if ( status != UDPC_IND_SUCCESS ) {
+					op_sim_end( "Error opening UDP port 999!","","","" );
+				} else {
+				  puts( "Successfully opened UDP port 999!" );
+				}
+				*/
+				}
+				FSM_PROFILE_SECTION_OUT (state0_exit_exec)
 
 
 			/** state (init) transition processing **/
@@ -325,11 +371,25 @@ HMIPv6_MAP_AD_GEN_state::HMIPv6_MAP_AD_GEN (OP_SIM_CONTEXT_ARG_OPT)
 				/* Create IP datagram fields data structure. */
 				dgram = ip_dgram_fdstruct_create();
 				
+				dgram->dest_addr = inet_address_create( "FF01:0:0:0:0:0:0:1", InetC_Addr_Family_v6 );
+				/*inet_address_copy_dynamic( IPv6C_ALL_NODES_LL_MCAST_ADDR );*/
+				
 				dgram->src_addr = inet_support_address_from_node_id_get( module, InetC_Addr_Family_v6 );
 				dgram->src_internal_addr = inet_rtab_addr_convert( dgram->src_addr );
-				
-				dgram->dest_addr = inet_address_copy (InetI_Ipv6_All_Nodes_LL_Mcast_Addr);
 				dgram->dest_internal_addr = inet_rtab_addr_convert( dgram->dest_addr );
+				
+				dgram->next_addr = inet_address_create( "FF01:0:0:0:0:0:0:1", InetC_Addr_Family_v6 );
+				
+				//InetI_Broadcast_v4_Addr; /* IPC_INITIAL_MCAST_ADDR; */
+				//IPv6C_ALL_NODES_NL_MCAST_ADDR;
+				//IPv6C_ALL_NODES_LL_MCAST_ADDR;
+				//IPv6C_ALL_RTRS_NL_MCAST_ADDR;
+				//IPv6C_ALL_RTRS_LL_MCAST_ADDR;
+				//IPv6C_ALL_RTRS_SL_MCAST_ADDR;
+				
+				char log[200];
+				inet_address_print( log, dgram->dest_addr );
+				printf( "Ad destination address: %s\n", log );
 				
 				dgram->orig_len = ext_hdr_len;
 				dgram->frag_len = ext_hdr_len;
@@ -354,7 +414,10 @@ HMIPv6_MAP_AD_GEN_state::HMIPv6_MAP_AD_GEN (OP_SIM_CONTEXT_ARG_OPT)
 				ip_dgram_fields_set( packet, dgram );
 				
 				/* Refresh the IP packet fields. */
-				op_pk_nfd_access( packet, "fields", &dgram );
+				/*op_pk_nfd_access( packet, "fields", &dgram );*/
+				op_pk_nfd_set( packet, "fields", dgram,
+				               ip_dgram_fdstruct_copy, ip_dgram_fdstruct_destroy, 
+				               sizeof( IpT_Dgram_Fields ) );
 				
 				/* Alter the header field size to model the mob msg size. */ 
 				
@@ -365,30 +428,56 @@ HMIPv6_MAP_AD_GEN_state::HMIPv6_MAP_AD_GEN (OP_SIM_CONTEXT_ARG_OPT)
 				ip_dgram_sup_ipv6_extension_hdr_size_add( &packet, &dgram,
 				    IpC_Procotol_Mobility_Ext_Hdr, (int) ext_hdr_len );
 				
-				/* Un-install the event state. */
-				 //op_ev_state_install( OPC_NIL, OPC_NIL);
 				/* Use ICI between this process and ip_encap */
+				/*
 				op_ici_attr_set( net_ici, "src_addr", dgram->src_addr );
-				op_ici_attr_set( net_ici, "dest_addr", dgram->dest_addr );
 				op_ici_attr_set( net_ici, "out_intf_index", 0 );
 				op_ici_attr_set( net_ici, "multicast_major_port", 0 );
-				op_ici_attr_set( net_ici, "multicast_minor_port", 0 );
-				op_ici_attr_set( net_ici, "connection_class", CONNECTION_CLASS_1 );
+				*/
+				
 				/*
+				op_ici_attr_set( net_ici, "multicast_minor_port", 0 );
 				op_ici_attr_set( net_ici, "destroy_pkt", OPC_FALSE );
 				op_ici_attr_set( net_ici, "higher_layer", OPC_TRUE);
 				*/
 				
-				
-				op_pk_encap_flag_set( packet, 1);
-				
-				/* Install ICI */
+				// Install ICI 
+				// Deliver this IPv6 datagram to the IP_encap module.
+				// op_pk_encap_flag_set( packet, 1 );
+				InetT_Address* dest = inet_address_copy_dynamic( &IPv6C_ALL_NODES_LL_MCAST_ADDR );
+				op_ici_attr_set( net_ici, "dest_addr", *dest );
+				op_ici_attr_set( net_ici, "out_intf_index", 0 );
+				op_ici_attr_set( net_ici, "multicast_major_port", 0 );
 				op_ici_install( net_ici );
+				op_pk_send_forced( packet, OUT_STRM );
+				op_ici_install( OPC_NIL );
 				
-				/* Deliver this IPv6 datagram to the IP_encap module. */
+				/*
+				op_ici_attr_set( arp_ici, "next_addr", IPv6C_ALL_NODES_LL_MCAST_ADDR );
+				op_ici_attr_set( arp_ici, "minor_port", 0 );
+				op_ici_install( arp_ici );
+				op_pk_send_forced( packet, OUT_STRM );
+				op_ici_install( OPC_NIL );
+				*/
+				
+				// Send it on to UDP module for delivery.
+				/*
+				op_ici_attr_set( command_ici, "local_port", MipC_Reg_UDP_Port_Num );
+				op_ici_attr_set( command_ici, "rem_port", MipC_Reg_UDP_Port_Num );
+				op_ici_attr_set( command_ici, "rem_addr", dgram->dest_addr );
+				op_ici_attr_set( command_ici, "src_addr", dgram->src_addr );
+				op_ici_attr_set( command_ici, "strm_index", 0 );
+				op_ici_attr_set( command_ici, "connection_class", CONNECTION_CLASS_1 );
+					
+				op_ici_install( command_ici );
+				
 				op_pk_send_forced( packet, OUT_STRM );
 				
-				op_ici_install( OPC_NIL );
+				int status = 0;
+				// Get the status indication from the ici
+				op_ici_attr_get( command_ici, "status", &status ); 
+				printf( "Send packet status: %d", status );
+				*/
 				
 				printf( "HMIPv6 MAP AD: Sending packet!\n" );
 				}
@@ -420,6 +509,12 @@ HMIPv6_MAP_AD_GEN_state::HMIPv6_MAP_AD_GEN (OP_SIM_CONTEXT_ARG_OPT)
 
 			/** state (FAIL) exit executives **/
 			FSM_STATE_EXIT_UNFORCED (3, "FAIL", "HMIPv6_MAP_AD_GEN [FAIL exit execs]")
+				FSM_PROFILE_SECTION_IN ("HMIPv6_MAP_AD_GEN [FAIL exit execs]", state3_exit_exec)
+				{
+				
+				puts("Fail");
+				}
+				FSM_PROFILE_SECTION_OUT (state3_exit_exec)
 
 
 			/** state (FAIL) transition processing **/
@@ -575,6 +670,16 @@ _op_HMIPv6_MAP_AD_GEN_svar (void * gen_ptr, const char * var_name, void ** var_p
 	if (strcmp ("net_ici" , var_name) == 0)
 		{
 		*var_p_ptr = (void *) (&prs_ptr->net_ici);
+		FOUT
+		}
+	if (strcmp ("command_ici" , var_name) == 0)
+		{
+		*var_p_ptr = (void *) (&prs_ptr->command_ici);
+		FOUT
+		}
+	if (strcmp ("arp_ici" , var_name) == 0)
+		{
+		*var_p_ptr = (void *) (&prs_ptr->arp_ici);
 		FOUT
 		}
 	*var_p_ptr = (void *)OPC_NIL;
