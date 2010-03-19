@@ -4,7 +4,7 @@
 
 
 /* This variable carries the header into the object file */
-const char HMIPv6_MAP_AD_GEN_pr_cpp [] = "MIL_3_Tfile_Hdr_ 145A 30A op_runsim 7 4B9AB29A 4B9AB29A 1 planet12 Student 0 0 none none 0 0 none 0 0 0 0 0 0 0 0 1e80 8                                                                                                                                                                                                                                                                                                                                                                                                       ";
+const char HMIPv6_MAP_AD_GEN_pr_cpp [] = "MIL_3_Tfile_Hdr_ 145A 30A modeler 7 4BA3EBCF 4BA3EBCF 1 planet12 Student 0 0 none none 0 0 none 0 0 0 0 0 0 0 0 1e80 8                                                                                                                                                                                                                                                                                                                                                                                                         ";
 #include <string.h>
 
 
@@ -226,7 +226,7 @@ HMIPv6_MAP_AD_GEN_state::HMIPv6_MAP_AD_GEN (OP_SIM_CONTEXT_ARG_OPT)
 				/* Register the protocol attribute and the module 	*/
 				/* Object ID in the registry.						*/
 				oms_pr_attr_set( procHndl, 
-				  "protocol" , OMSC_PR_STRING, "ip-ip (MIP)", 
+				  "protocol" , OMSC_PR_STRING, "ip-ip (HMIPv6)", 
 				  "module ID", OMSC_PR_OBJID , op_id_self() , OPC_NIL );
 				
 				
@@ -249,8 +249,8 @@ HMIPv6_MAP_AD_GEN_state::HMIPv6_MAP_AD_GEN (OP_SIM_CONTEXT_ARG_OPT)
 				
 				  ipv6_extension_header_package_init();
 				
-				  int protoNum = IpC_Protocol_Unspec;
-					Inet_Higher_Layer_Protocol_Register( "ip-ip (MIP)", &protoNum );
+				  int protoNum = IpC_Protocol_HMIPv6;
+					Inet_Higher_Layer_Protocol_Register( "ip-ip (HMIPv6)", &protoNum );
 				
 				  net_ici = op_ici_create( "inet_encap_req" );
 				  op_ici_attr_set( net_ici, "connection_class", CONNECTION_CLASS_1 );
@@ -340,7 +340,7 @@ HMIPv6_MAP_AD_GEN_state::HMIPv6_MAP_AD_GEN (OP_SIM_CONTEXT_ARG_OPT)
 				
 				char log[200];
 				inet_address_print( log, dgram->dest_addr );
-				printf( "Ad destination address: %s\n", log );
+				//printf( "Ad destination address: %s\n", log );
 				
 				dgram->orig_len = ext_hdr_len;
 				dgram->frag_len = ext_hdr_len;
@@ -348,7 +348,8 @@ HMIPv6_MAP_AD_GEN_state::HMIPv6_MAP_AD_GEN (OP_SIM_CONTEXT_ARG_OPT)
 				
 				/* The protocol field (next header in IPv6) must    */
 				/* indicate that this is a mobility extension header. */
-				dgram->protocol = IpC_Procotol_Mobility_Ext_Hdr;
+				//dgram->protocol = IpC_Procotol_Mobility_Ext_Hdr;
+				dgram->protocol = IpC_Protocol_HMIPv6;
 				
 				/* 
 				** @NOTE!: For simplicity we use the  Mipv6C_Bind_Ref_Req header type
@@ -394,7 +395,7 @@ HMIPv6_MAP_AD_GEN_state::HMIPv6_MAP_AD_GEN (OP_SIM_CONTEXT_ARG_OPT)
 				op_pk_send_forced( packet, OUT_STRM );
 				op_ici_install( OPC_NIL );
 				
-				printf( "HMIPv6 MAP AD: Sending packet!\n" );
+				//printf( "HMIPv6 MAP AD: Sending packet!\n" );
 				}
 				FSM_PROFILE_SECTION_OUT (state2_enter_exec)
 

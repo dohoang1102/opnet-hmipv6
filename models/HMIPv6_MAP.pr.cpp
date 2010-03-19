@@ -4,7 +4,7 @@
 
 
 /* This variable carries the header into the object file */
-const char HMIPv6_MAP_pr_cpp [] = "MIL_3_Tfile_Hdr_ 145A 30A op_runsim 7 4B7DC5BA 4B7DC5BA 1 planet12 Student 0 0 none none 0 0 none 0 0 0 0 0 0 0 0 1e80 8                                                                                                                                                                                                                                                                                                                                                                                                       ";
+const char HMIPv6_MAP_pr_cpp [] = "MIL_3_Tfile_Hdr_ 145A 30A op_runsim 7 4BA3ECCE 4BA3ECCE 1 planet12 Student 0 0 none none 0 0 none 0 0 0 0 0 0 0 0 1e80 8                                                                                                                                                                                                                                                                                                                                                                                                       ";
 #include <string.h>
 
 
@@ -469,7 +469,7 @@ HMIPv6_MAP_state::HMIPv6_MAP (OP_SIM_CONTEXT_ARG_OPT)
 			{
 			/*---------------------------------------------------------*/
 			/** state (init) enter executives **/
-			FSM_STATE_ENTER_UNFORCED_NOLABEL (0, "init", "HMIPv6_MAP [init enter execs]")
+			FSM_STATE_ENTER_FORCED_NOLABEL (0, "init", "HMIPv6_MAP [init enter execs]")
 				FSM_PROFILE_SECTION_IN ("HMIPv6_MAP [init enter execs]", state0_enter_exec)
 				{
 				/*
@@ -499,14 +499,15 @@ HMIPv6_MAP_state::HMIPv6_MAP (OP_SIM_CONTEXT_ARG_OPT)
 				
 				/* Obtain handles for our self and our parent */
 				selfHndl   = op_pro_self();
-				parentHndl = op_pro_parent( selfHndl );  
-				
 				
 				/* Register the process in model-wide registry */
 				procHndl = (OmsT_Pr_Handle)oms_pr_process_register( parentId, selfId, selfHndl, modelName );
 				
 				/* Register the protocol attribute in the	registry. */
-				oms_pr_attr_set( procHndl, "protocol", OMSC_PR_STRING, "mipv6", OPC_NIL );
+				oms_pr_attr_set( procHndl, "protocol", OMSC_PR_STRING, "ip-ip (HMIPv6)", OPC_NIL );
+				
+				int protoNum = IpC_Protocol_HMIPv6;
+				Inet_Higher_Layer_Protocol_Register( "ip-ip (HMIPv6)", &protoNum );
 				
 				puts( "HMIPv6 MAP: Initialized MAP"  );
 				
@@ -519,12 +520,8 @@ HMIPv6_MAP_state::HMIPv6_MAP (OP_SIM_CONTEXT_ARG_OPT)
 				}
 				FSM_PROFILE_SECTION_OUT (state0_enter_exec)
 
-			/** blocking after enter executives of unforced state. **/
-			FSM_EXIT (1,"HMIPv6_MAP")
-
-
 			/** state (init) exit executives **/
-			FSM_STATE_EXIT_UNFORCED (0, "init", "HMIPv6_MAP [init exit execs]")
+			FSM_STATE_EXIT_FORCED (0, "init", "HMIPv6_MAP [init exit execs]")
 
 
 			/** state (init) transition processing **/

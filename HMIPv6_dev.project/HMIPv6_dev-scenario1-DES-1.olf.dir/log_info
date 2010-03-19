@@ -1,7 +1,7 @@
 
 [Log Info:]
 version :	1
-row_count :	22
+row_count :	9
 max_log_row :	5000
 max_file_row :	1000
 hide_date :	TRUE
@@ -9,7 +9,7 @@ include_severity :	TRUE
 file_count :	1
 
 [File List:]
-4648_03-19-2010_18.44.24	22	18:44:37 Mar 19 2010	18:45:28 Mar 19 2010
+4084_03-19-2010_21.42.34	9	21:42:41 Mar 19 2010	21:44:41 Mar 19 2010
 
 [Column Dependency List:]
 dependency_count :	1
@@ -35,7 +35,7 @@ log_handle_column_count :	3
 5	Category	2	Configuration
 6	Class	2	Application
 7	SubClass	2	Setup
-incident_count :	1
+incident_count :	0
 
 log_handle_column_count :	3
 5	Category	2	Configuration
@@ -65,7 +65,7 @@ log_handle_column_count :	3
 5	Category	2	Configuration
 6	Class	2	IP
 7	SubClass	2	Model_Configuration_Warning
-incident_count :	6
+incident_count :	4
 
 log_handle_column_count :	3
 5	Category	2	Configuration
@@ -203,7 +203,7 @@ log_handle_column_count :	3
 5	Category	2	Configuration
 6	Class	2	Wireless LAN
 7	SubClass	2	MAC Configuration
-incident_count :	3
+incident_count :	1
 
 log_handle_column_count :	3
 5	Category	2	Low-Level
@@ -293,7 +293,7 @@ log_handle_column_count :	3
 5	Category	2	Low-Level
 6	Class	2	Simulation
 7	SubClass	2	Message
-incident_count :	2
+incident_count :	0
 
 log_handle_column_count :	3
 5	Category	2	Low-Level
@@ -359,7 +359,7 @@ log_handle_column_count :	3
 5	Category	2	Protocol
 6	Class	2	IP
 7	SubClass	2	Protocol_Error
-incident_count :	6
+incident_count :	0
 
 log_handle_column_count :	3
 5	Category	2	Protocol

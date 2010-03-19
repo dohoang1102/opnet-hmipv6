@@ -4,7 +4,7 @@
 
 
 /* This variable carries the header into the object file */
-const char HMIPv6_MN_NEW_pr_cpp [] = "MIL_3_Tfile_Hdr_ 145A 30A op_runsim 7 4B999D81 4B999D81 1 planet12 Student 0 0 none none 0 0 none 0 0 0 0 0 0 0 0 1e80 8                                                                                                                                                                                                                                                                                                                                                                                                       ";
+const char HMIPv6_MN_NEW_pr_cpp [] = "MIL_3_Tfile_Hdr_ 145A 30A op_runsim 7 4BA3EFCB 4BA3EFCB 1 planet12 Student 0 0 none none 0 0 none 0 0 0 0 0 0 0 0 1e80 8                                                                                                                                                                                                                                                                                                                                                                                                       ";
 #include <string.h>
 
 
@@ -207,19 +207,25 @@ bool is_map_advert( Packet* packet ) {
   List* list;
   IpT_Dgram_Fields* fields;
   Ipv6T_Mobility_Hdr_Info* info;
+  address_t mapaddr; 
 
-	FIN( is_bind_ack( packet ) );
+	FIN( is_map_advert( packet ) );
 
   if ( correct_packet_fmt( packet ) ) {
     fields = ip_dgram_fields_get( packet );
     /* check the  extension types */
-    if ( IpC_Procotol_Mobility_Ext_Hdr == fields->protocol ) {
+    if ( IpC_Protocol_HMIPv6 == fields->protocol ) {
       /* Grab the mobility headers */
       list = ipv6_extension_header_list_get( fields );
       info = (Ipv6T_Mobility_Hdr_Info*) op_prg_list_access( list, OPC_LISTPOS_HEAD );
       /* This is a MAP advertisement */
       if ( Mipv6C_Bind_Ref_Req == info->mh_type ) {
         puts( "HMIPv6 MN: Packet is a MAP Advert\n" ); 
+        mapaddr = inet_address_copy( info->msg_data.bind_update.home_address );
+        //if ( inet_address_equal( mapaddr, InetI_Invalid_Addr ) ) {
+          map_address = inet_address_copy( mapaddr );
+        //}
+        inet_address_destroy( mapaddr );
         FRET( true );
       }
     }
@@ -240,7 +246,7 @@ address_t get_map_address( Packet* packet ) {
   Ipv6T_Mobility_Hdr_Info* header;
   std::string address;
 
-	FIN( is_bind_ack( packet ) );
+	FIN( get_map_address( packet ) );
 
   fields = ip_dgram_fields_get( packet );
 
@@ -480,7 +486,7 @@ HMIPv6_MN_NEW_state::HMIPv6_MN_NEW (OP_SIM_CONTEXT_ARG_OPT)
 			{
 			/*---------------------------------------------------------*/
 			/** state (init) enter executives **/
-			FSM_STATE_ENTER_UNFORCED_NOLABEL (0, "init", "HMIPv6_MN_NEW [init enter execs]")
+			FSM_STATE_ENTER_FORCED_NOLABEL (0, "init", "HMIPv6_MN_NEW [init enter execs]")
 				FSM_PROFILE_SECTION_IN ("HMIPv6_MN_NEW [init enter execs]", state0_enter_exec)
 				{
 				/*
@@ -506,14 +512,18 @@ HMIPv6_MN_NEW_state::HMIPv6_MN_NEW (OP_SIM_CONTEXT_ARG_OPT)
 				
 				/* Obtain handles for our self and our parent */
 				selfHndl   = op_pro_self();
-				parentHndl = op_pro_parent( selfHndl );  
 				
 				/* Register the process in model-wide registry */
-				procHndl = (OmsT_Pr_Handle)oms_pr_process_register( parentId, selfId,
-				                                           selfHndl, modelName );
+				procHndl = (OmsT_Pr_Handle)oms_pr_process_register
+				                    ( parentId, selfId, selfHndl, modelName );
 				
 				/* Register the protocol attribute in the	registry. */
-				oms_pr_attr_set( procHndl, "protocol", OMSC_PR_STRING, "hmipv6", OPC_NIL );
+				oms_pr_attr_set( procHndl, "protocol", OMSC_PR_STRING, "ip-ip (HMIPv6)", OPC_NIL );
+				
+				ipv6_extension_header_package_init();
+				
+				int protoNum = IpC_Protocol_HMIPv6;
+				Inet_Higher_Layer_Protocol_Register( "ip-ip (HMIPv6)", &protoNum );
 				
 				/* Set up state transfer variables */
 				address_changed = false;
@@ -522,18 +532,14 @@ HMIPv6_MN_NEW_state::HMIPv6_MN_NEW (OP_SIM_CONTEXT_ARG_OPT)
 				
 				rcoa = InetI_Invalid_Addr;
 				map_address = InetI_Invalid_Addr;
-				lcoa = inet_address_copy( get_lcoa() );
+				lcoa = InetI_Invalid_Addr;
 				
 				puts( "HMIPv6 MN: Initialized mobile node.\n" );
 				}
 				FSM_PROFILE_SECTION_OUT (state0_enter_exec)
 
-			/** blocking after enter executives of unforced state. **/
-			FSM_EXIT (1,"HMIPv6_MN_NEW")
-
-
 			/** state (init) exit executives **/
-			FSM_STATE_EXIT_UNFORCED (0, "init", "HMIPv6_MN_NEW [init exit execs]")
+			FSM_STATE_EXIT_FORCED (0, "init", "HMIPv6_MN_NEW [init exit execs]")
 
 
 			/** state (init) transition processing **/
@@ -549,14 +555,16 @@ HMIPv6_MN_NEW_state::HMIPv6_MN_NEW (OP_SIM_CONTEXT_ARG_OPT)
 				/* Attempt to grab the map address */
 				
 				/* Handle the interrupt appropriately */
-				switch( op_intrpt_type() ) {
+				int inrpt = op_intrpt_type();
+				
+				switch( inrpt ) {
 				
 				  /* We have a incoming packet. */
 				  case OPC_INTRPT_STRM: {
-				    op_ici_destroy(op_intrpt_ici());
 				
 				    puts( "HMIPv6 MN: Got packet\n" );
 				    currpacket = op_pk_get( IN_STRM );
+				    op_ici_destroy(op_intrpt_ici());
 				
 				    /* Make sure the packet is sound */
 				    if ( (NULL != currpacket) && correct_packet_fmt( currpacket ) ) {
@@ -564,7 +572,7 @@ HMIPv6_MN_NEW_state::HMIPv6_MN_NEW (OP_SIM_CONTEXT_ARG_OPT)
 				      if ( is_map_advert( currpacket ) ) {
 				        /* Snag that address ! */
 				        puts( "HMIPv6 MN: Got MAP Advertisement\n" );
-				        map_address = get_map_address( currpacket );
+				        //map_address = get_map_address( currpacket );
 				        have_map_addr = true;
 				      }
 				    } 
@@ -628,7 +636,7 @@ HMIPv6_MN_NEW_state::HMIPv6_MN_NEW (OP_SIM_CONTEXT_ARG_OPT)
 				        /* Check if the packet is a MAP Advertisement */
 				        if ( is_map_advert( currpacket ) ) {
 				          /* Snag that address ! */
-				          map_address = get_map_address( currpacket );
+				          //map_address = get_map_address( currpacket );
 				        }
 				
 				        /* Check that this is the tunnel end point */

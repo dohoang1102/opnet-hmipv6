@@ -26,7 +26,10 @@
 
 #define HMIPV6C_MOB_MSG_COUNT 8 
 
+#define IpC_Protocol_HMIPv6 255
+
 EXTERN_C_BEGIN
+
 
 /* Define the binding cache table as a binary hash table. */  
 typedef PrgT_Bin_Hash_Table hmipv6_bind_cache;
