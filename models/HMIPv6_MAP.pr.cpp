@@ -4,7 +4,7 @@
 
 
 /* This variable carries the header into the object file */
-const char HMIPv6_MAP_pr_cpp [] = "MIL_3_Tfile_Hdr_ 145A 30A op_runsim 7 4BA3ECCE 4BA3ECCE 1 planet12 Student 0 0 none none 0 0 none 0 0 0 0 0 0 0 0 1e80 8                                                                                                                                                                                                                                                                                                                                                                                                       ";
+const char HMIPv6_MAP_pr_cpp [] = "MIL_3_Tfile_Hdr_ 145A 30A modeler 7 4BA7A114 4BA7A114 1 planet12 Student 0 0 none none 0 0 none 0 0 0 0 0 0 0 0 1e80 8                                                                                                                                                                                                                                                                                                                                                                                                         ";
 #include <string.h>
 
 
@@ -130,6 +130,7 @@ class HMIPv6_MAP_state
 		bool	                   		tunnelin                                        ;
 		std::string	            		src                                             ;
 		address_t	              		map_address                                     ;
+		Ici*	                   		inet_encap_ici                                  ;
 
 		/* FSM code */
 		void HMIPv6_MAP (OP_SIM_CONTEXT_ARG_OPT);
@@ -163,6 +164,7 @@ VosT_Obtype HMIPv6_MAP_state::obtype = (VosT_Obtype)OPC_NIL;
 #define tunnelin                		op_sv_ptr->tunnelin
 #define src                     		op_sv_ptr->src
 #define map_address             		op_sv_ptr->map_address
+#define inet_encap_ici          		op_sv_ptr->inet_encap_ici
 
 /* These macro definitions will define a local variable called	*/
 /* "op_sv_ptr" in each function containing a FIN statement.	*/
@@ -375,18 +377,24 @@ void send_BAck( address_t destination, address_t RCoA ) {
 
   /* Alter the header field size to model the mob msg size. */ 
 
-  /* Add the size of the mobility extension header into */
-  /* the packet. Modify the size of the header fields in   */
-  /* the IPv6 packet to achieve this.           */
+  /* Add the size of the mobility extension header into   */
+  /* the packet. Modify the size of the header fields in  */
+  /* the IPv6 packet to achieve this.                     */
 
-  ip_dgram_sup_ipv6_extension_hdr_size_add( &packet, &dgram,
-      IpC_Procotol_Mobility_Ext_Hdr, (int) ext_hdr_len );
+  ip_dgram_sup_ipv6_extension_hdr_size_add
+      ( &packet, &dgram, IpC_Procotol_Mobility_Ext_Hdr, (int) ext_hdr_len );
 
-  /* Un-install the event state. */
-  op_ev_state_install( OPC_NIL, OPC_NIL);
-    
-  /* Deliver this IPv6 datagram to the IP module. */
-  op_pk_deliver( packet, selfId, OUT_STRM );
+  InetT_Address* des_a = inet_address_copy_dynamic( &(dgram->dest_addr) );
+  InetT_Address* src_a = inet_address_copy_dynamic( &(dgram->src_addr) );
+  op_ici_attr_set_ptr( inet_encap_ici, "dest_addr", des_a );
+  op_ici_attr_set_ptr( inet_encap_ici, "src_addr", src_a );
+  op_ici_attr_set_int32( inet_encap_ici, "out_intf_index", 0 );
+  op_ici_attr_set_int32( inet_encap_ici, "multicast_major_port", 0 );
+
+  op_ici_install( inet_encap_ici );
+  op_pk_send_forced( packet, OUT_STRM );
+  op_ici_install( OPC_NIL );
+
 
   FOUT;
 } 
@@ -419,6 +427,7 @@ void send_BAck( address_t destination, address_t RCoA ) {
 #undef tunnelin
 #undef src
 #undef map_address
+#undef inet_encap_ici
 
 /* Access from C kernel using C linkage */
 extern "C"
@@ -509,6 +518,11 @@ HMIPv6_MAP_state::HMIPv6_MAP (OP_SIM_CONTEXT_ARG_OPT)
 				int protoNum = IpC_Protocol_HMIPv6;
 				Inet_Higher_Layer_Protocol_Register( "ip-ip (HMIPv6)", &protoNum );
 				
+				ipv6_extension_header_package_init();
+				
+				inet_encap_ici = op_ici_create( "inet_encap_req" );
+				op_ici_attr_set( inet_encap_ici, "connection_class", CONNECTION_CLASS_1 );
+				
 				puts( "HMIPv6 MAP: Initialized MAP"  );
 				
 				/* Initialize state variables */
@@ -556,6 +570,7 @@ HMIPv6_MAP_state::HMIPv6_MAP (OP_SIM_CONTEXT_ARG_OPT)
 				
 				    puts( "HMIPv6 MAP: got packet\n" );
 				    currpacket = op_pk_get( IN_STRM );
+				    op_ici_destroy( op_intrpt_ici() );
 				
 				    /* Make sure the packet is sound */
 				    if ( (NULL != currpacket) && correct_packet_fmt( currpacket ) ) {
@@ -952,6 +967,11 @@ _op_HMIPv6_MAP_svar (void * gen_ptr, const char * var_name, void ** var_p_ptr)
 	if (strcmp ("map_address" , var_name) == 0)
 		{
 		*var_p_ptr = (void *) (&prs_ptr->map_address);
+		FOUT
+		}
+	if (strcmp ("inet_encap_ici" , var_name) == 0)
+		{
+		*var_p_ptr = (void *) (&prs_ptr->inet_encap_ici);
 		FOUT
 		}
 	*var_p_ptr = (void *)OPC_NIL;

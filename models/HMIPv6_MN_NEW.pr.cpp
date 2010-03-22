@@ -4,7 +4,7 @@
 
 
 /* This variable carries the header into the object file */
-const char HMIPv6_MN_NEW_pr_cpp [] = "MIL_3_Tfile_Hdr_ 145A 30A op_runsim 7 4BA3EFCB 4BA3EFCB 1 planet12 Student 0 0 none none 0 0 none 0 0 0 0 0 0 0 0 1e80 8                                                                                                                                                                                                                                                                                                                                                                                                       ";
+const char HMIPv6_MN_NEW_pr_cpp [] = "MIL_3_Tfile_Hdr_ 145A 30A modeler 7 4BA7A110 4BA7A110 1 planet12 Student 0 0 none none 0 0 none 0 0 0 0 0 0 0 0 1e80 8                                                                                                                                                                                                                                                                                                                                                                                                         ";
 #include <string.h>
 
 
@@ -142,6 +142,7 @@ class HMIPv6_MN_NEW_state
 		OmsT_Pr_Handle	         		procHndl                                        ;
 		bool	                   		tunneld                                         ;
 		bool	                   		have_map_addr                                   ;
+		Ici*	                   		inet_encap_ici                                  ;
 
 		/* FSM code */
 		void HMIPv6_MN_NEW (OP_SIM_CONTEXT_ARG_OPT);
@@ -174,6 +175,7 @@ VosT_Obtype HMIPv6_MN_NEW_state::obtype = (VosT_Obtype)OPC_NIL;
 #define procHndl                		op_sv_ptr->procHndl
 #define tunneld                 		op_sv_ptr->tunneld
 #define have_map_addr           		op_sv_ptr->have_map_addr
+#define inet_encap_ici          		op_sv_ptr->inet_encap_ici
 
 /* These macro definitions will define a local variable called	*/
 /* "op_sv_ptr" in each function containing a FIN statement.	*/
@@ -400,11 +402,17 @@ bu_msg_send( address_t dest_addr, address_t suggestedRCoA ) {
   ip_dgram_sup_ipv6_extension_hdr_size_add( &packet, &dgram,
       IpC_Procotol_Mobility_Ext_Hdr, (int) ext_hdr_len );
 
-  /* Un-install the event state. */
-  op_ev_state_install( OPC_NIL, OPC_NIL);
-    
   /* Deliver this IPv6 datagram to the IP module. */
-  op_pk_deliver( packet, selfId, OUT_STRM );
+  InetT_Address* des = inet_address_copy_dynamic( &(dgram->dest_addr) );
+  InetT_Address* src = inet_address_copy_dynamic( &(dgram->src_addr) );
+  op_ici_attr_set_ptr( inet_encap_ici, "dest_addr", des );
+  op_ici_attr_set_ptr( inet_encap_ici, "src_addr", src );
+  op_ici_attr_set_int32( inet_encap_ici, "out_intf_index", 0 );
+  op_ici_attr_set_int32( inet_encap_ici, "multicast_major_port", 0 );
+
+  op_ici_install( inet_encap_ici );
+  op_pk_send_forced( packet, OUT_STRM );
+  op_ici_install( OPC_NIL );
 
   FOUT;
 } 
@@ -436,6 +444,7 @@ bu_msg_send( address_t dest_addr, address_t suggestedRCoA ) {
 #undef procHndl
 #undef tunneld
 #undef have_map_addr
+#undef inet_encap_ici
 
 /* Access from C kernel using C linkage */
 extern "C"
@@ -526,9 +535,13 @@ HMIPv6_MN_NEW_state::HMIPv6_MN_NEW (OP_SIM_CONTEXT_ARG_OPT)
 				Inet_Higher_Layer_Protocol_Register( "ip-ip (HMIPv6)", &protoNum );
 				
 				/* Set up state transfer variables */
-				address_changed = false;
+				address_changed = true;
 				have_map_addr   = false;
 				tunneld         = false;
+				
+				inet_encap_ici = op_ici_create( "inet_encap_req" );
+				op_ici_attr_set( inet_encap_ici, "connection_class", CONNECTION_CLASS_1 );
+				
 				
 				rcoa = InetI_Invalid_Addr;
 				map_address = InetI_Invalid_Addr;
@@ -948,6 +961,11 @@ _op_HMIPv6_MN_NEW_svar (void * gen_ptr, const char * var_name, void ** var_p_ptr
 	if (strcmp ("have_map_addr" , var_name) == 0)
 		{
 		*var_p_ptr = (void *) (&prs_ptr->have_map_addr);
+		FOUT
+		}
+	if (strcmp ("inet_encap_ici" , var_name) == 0)
+		{
+		*var_p_ptr = (void *) (&prs_ptr->inet_encap_ici);
 		FOUT
 		}
 	*var_p_ptr = (void *)OPC_NIL;
