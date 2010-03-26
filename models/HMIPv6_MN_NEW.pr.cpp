@@ -4,7 +4,7 @@
 
 
 /* This variable carries the header into the object file */
-const char HMIPv6_MN_NEW_pr_cpp [] = "MIL_3_Tfile_Hdr_ 145A 30A modeler 7 4BA7A110 4BA7A110 1 planet12 Student 0 0 none none 0 0 none 0 0 0 0 0 0 0 0 1e80 8                                                                                                                                                                                                                                                                                                                                                                                                         ";
+const char HMIPv6_MN_NEW_pr_cpp [] = "MIL_3_Tfile_Hdr_ 145A 30A op_runsim 7 4BA7D3DB 4BA7D3DB 1 planet12 Student 0 0 none none 0 0 none 0 0 0 0 0 0 0 0 1e80 8                                                                                                                                                                                                                                                                                                                                                                                                       ";
 #include <string.h>
 
 
@@ -51,7 +51,7 @@ extern int mobility_msg_size_in_bits[MIPV6C_MOB_MSG_COUNT];
 #define IN_STRM   0
 
 /* Define the packet source index for the output stream */
-#define OUT_STRM  1
+#define OUT_STRM  0
 
 #define HEX_FMT   16
 
@@ -215,19 +215,16 @@ bool is_map_advert( Packet* packet ) {
 
   if ( correct_packet_fmt( packet ) ) {
     fields = ip_dgram_fields_get( packet );
-    /* check the  extension types */
+    /* Check the  extension types */
     if ( IpC_Protocol_HMIPv6 == fields->protocol ) {
       /* Grab the mobility headers */
       list = ipv6_extension_header_list_get( fields );
       info = (Ipv6T_Mobility_Hdr_Info*) op_prg_list_access( list, OPC_LISTPOS_HEAD );
       /* This is a MAP advertisement */
       if ( Mipv6C_Bind_Ref_Req == info->mh_type ) {
-        puts( "HMIPv6 MN: Packet is a MAP Advert\n" ); 
         mapaddr = inet_address_copy( info->msg_data.bind_update.home_address );
-        //if ( inet_address_equal( mapaddr, InetI_Invalid_Addr ) ) {
-          map_address = inet_address_copy( mapaddr );
-        //}
-        inet_address_destroy( mapaddr );
+        map_address = inet_address_copy( mapaddr );
+        puts( "HMIPv6 MN: Packet is a MAP Advert" ); 
         FRET( true );
       }
     }
@@ -310,7 +307,6 @@ address_t get_lcoa( void ) {
   LCoA = inet_support_address_from_node_id_get( parentId, InetC_Addr_Family_v6 );
 
   address = addressToString( LCoA );
-  printf( "HMIPv6 MN: LCoA is %s\n", address.c_str() ); 
   FRET( LCoA );
 }
 
@@ -326,10 +322,9 @@ bool has_lcoa_changed( void ) {
   my_address = get_lcoa();
 
   if ( inet_address_equal( my_address, lcoa ) ) {
-    puts( "HMIPv6 MN: LCoA hasn't changed\n"); 
     FRET( false  );
   }
-  puts( "HMIPv6 MN: LCoA has changed\n"); 
+  printf( "HMIPv6 MN: LCoA has changed %s\n", addressToString( my_address ).c_str() ); 
   FRET( true );
 }
 
@@ -408,7 +403,6 @@ bu_msg_send( address_t dest_addr, address_t suggestedRCoA ) {
   op_ici_attr_set_ptr( inet_encap_ici, "dest_addr", des );
   op_ici_attr_set_ptr( inet_encap_ici, "src_addr", src );
   op_ici_attr_set_int32( inet_encap_ici, "out_intf_index", 0 );
-  op_ici_attr_set_int32( inet_encap_ici, "multicast_major_port", 0 );
 
   op_ici_install( inet_encap_ici );
   op_pk_send_forced( packet, OUT_STRM );
@@ -547,7 +541,7 @@ HMIPv6_MN_NEW_state::HMIPv6_MN_NEW (OP_SIM_CONTEXT_ARG_OPT)
 				map_address = InetI_Invalid_Addr;
 				lcoa = InetI_Invalid_Addr;
 				
-				puts( "HMIPv6 MN: Initialized mobile node.\n" );
+				puts( "HMIPv6 MN: Initialized mobile node." );
 				}
 				FSM_PROFILE_SECTION_OUT (state0_enter_exec)
 
@@ -575,17 +569,15 @@ HMIPv6_MN_NEW_state::HMIPv6_MN_NEW (OP_SIM_CONTEXT_ARG_OPT)
 				  /* We have a incoming packet. */
 				  case OPC_INTRPT_STRM: {
 				
-				    puts( "HMIPv6 MN: Got packet\n" );
+				    puts( "HMIPv6 MN: Got packet" );
 				    currpacket = op_pk_get( IN_STRM );
 				    op_ici_destroy(op_intrpt_ici());
 				
 				    /* Make sure the packet is sound */
 				    if ( (NULL != currpacket) && correct_packet_fmt( currpacket ) ) {
+				
 				      /* Check if the packet is a MAP Advertisement */
 				      if ( is_map_advert( currpacket ) ) {
-				        /* Snag that address ! */
-				        puts( "HMIPv6 MN: Got MAP Advertisement\n" );
-				        //map_address = get_map_address( currpacket );
 				        have_map_addr = true;
 				      }
 				    } 
@@ -640,17 +632,15 @@ HMIPv6_MN_NEW_state::HMIPv6_MN_NEW (OP_SIM_CONTEXT_ARG_OPT)
 				    /* We have a incoming packet. */
 				    case OPC_INTRPT_STRM: {
 				
-				      puts( "HMIPv6 MN: Got packet\n" );
+				      puts( "HMIPv6 MN: Got packet" );
 				      currpacket = op_pk_get( IN_STRM );
+				      op_ici_destroy( op_intrpt_ici() );
 				
 				      /* Make sure the packet is sound */
 				      if ( (NULL != currpacket) && correct_packet_fmt( currpacket ) ) {
 				
 				        /* Check if the packet is a MAP Advertisement */
-				        if ( is_map_advert( currpacket ) ) {
-				          /* Snag that address ! */
-				          //map_address = get_map_address( currpacket );
-				        }
+				        is_map_advert( currpacket );
 				
 				        /* Check that this is the tunnel end point */
 				        if ( tunneled( currpacket, lcoa ) ) {
