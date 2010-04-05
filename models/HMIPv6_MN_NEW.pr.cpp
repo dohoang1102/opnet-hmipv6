@@ -4,7 +4,7 @@
 
 
 /* This variable carries the header into the object file */
-const char HMIPv6_MN_NEW_pr_cpp [] = "MIL_3_Tfile_Hdr_ 145A 30A op_runsim 7 4BA7D3DB 4BA7D3DB 1 planet12 Student 0 0 none none 0 0 none 0 0 0 0 0 0 0 0 1e80 8                                                                                                                                                                                                                                                                                                                                                                                                       ";
+const char HMIPv6_MN_NEW_pr_cpp [] = "MIL_3_Tfile_Hdr_ 145A 30A op_runsim 7 4BB4C458 4BB4C458 1 planet12 Student 0 0 none none 0 0 none 0 0 0 0 0 0 0 0 1e80 8                                                                                                                                                                                                                                                                                                                                                                                                       ";
 #include <string.h>
 
 
@@ -33,7 +33,7 @@ const char HMIPv6_MN_NEW_pr_cpp [] = "MIL_3_Tfile_Hdr_ 145A 30A op_runsim 7 4BA7
 #include <string>
 #include <map>
 
-extern int mobility_msg_size_in_bits[MIPV6C_MOB_MSG_COUNT];
+//extern int mobility_msg_size_in_bits[MIPV6C_MOB_MSG_COUNT];
 
 /* Make sure processes of lower modules have registered in global process */
 #define SELF_NOTIF   ( op_intrpt_type() == OPC_INTRPT_SELF )
@@ -206,12 +206,13 @@ enum { _op_block_origin = __LINE__ + 2};
  */
 bool is_map_advert( Packet* packet ) { 
 
+	FIN( is_map_advert( packet ) );
+
   List* list;
   IpT_Dgram_Fields* fields;
   Ipv6T_Mobility_Hdr_Info* info;
   address_t mapaddr; 
 
-	FIN( is_map_advert( packet ) );
 
   if ( correct_packet_fmt( packet ) ) {
     fields = ip_dgram_fields_get( packet );
@@ -240,12 +241,13 @@ bool is_map_advert( Packet* packet ) {
  */
 address_t get_map_address( Packet* packet ) { 
  
+	FIN( get_map_address( packet ) );
+
   List* list;
   IpT_Dgram_Fields* fields;
   Ipv6T_Mobility_Hdr_Info* header;
   std::string address;
 
-	FIN( get_map_address( packet ) );
 
   fields = ip_dgram_fields_get( packet );
 
@@ -263,13 +265,15 @@ address_t get_map_address( Packet* packet ) {
  * @return a newly generated regional care of address.
  */
 address_t generate_rcoa( void ) {
+  
+  FIN( generate_rcoa( void ) );
+
   address_t RCoA;
   char buffer[33];
   std::string map_addr;
   unsigned int rand_int;
   PrgT_Random_Gen* my_rng;
 
-  FIN( get_lcoa( void ) );
 
   /* Create a new random number generator */
   my_rng = op_prg_random_gen_create( 99 );
@@ -282,9 +286,15 @@ address_t generate_rcoa( void ) {
 
   /* Build the RCoA string */
   map_addr = addressToString( map_address );
-  map_addr.append(":");
+
   _itoa( rand_int, buffer, HEX_FMT );
-  map_addr.append( buffer );
+
+  map_addr[ map_addr.length() - 1] = buffer[0]; 
+
+  char* bptr = buffer;
+  bptr++;
+
+  map_addr.append( bptr );
 
   printf( "HMIPv6 MN: Generated RCoa - %s\n", map_addr.c_str() ); 
 
@@ -299,14 +309,17 @@ address_t generate_rcoa( void ) {
  * @return the link care of address. 
  */
 address_t get_lcoa( void ) {
+
+  FIN( get_lcoa( void ) );
+
   address_t LCoA;
   std::string address;
 
-  FIN( get_lcoa( void ) );
 
   LCoA = inet_support_address_from_node_id_get( parentId, InetC_Addr_Family_v6 );
 
   address = addressToString( LCoA );
+
   FRET( LCoA );
 }
 
@@ -338,18 +351,18 @@ bool has_lcoa_changed( void ) {
 static void
 bu_msg_send( address_t dest_addr, address_t suggestedRCoA ) {
 
+  FIN( bu_msg_send( dest_addr, suggestedRCoA ) );
+
   Packet*           packet;
   OpT_Packet_Size   ext_hdr_len;
   IpT_Dgram_Fields* dgram;
   Ipv6T_Mobility_Hdr_Info*  header;
-  
-  FIN( bu_msg_send( dest_addr, suggestedRCoA ) );
 
   /* Create the IP datagram. */
   packet = ip_dgram_create();
   
   /* Get the size contributed by the mobility header. */
-  ext_hdr_len = (OpT_Packet_Size) mobility_msg_size_in_bits[BIND_UPDATE];
+  ext_hdr_len = (OpT_Packet_Size) 800; // mobility_msg_size_in_bits[BIND_UPDATE];
   
   /* Create IP datagram fields data structure. */
   dgram = ip_dgram_fdstruct_create();
@@ -403,6 +416,8 @@ bu_msg_send( address_t dest_addr, address_t suggestedRCoA ) {
   op_ici_attr_set_ptr( inet_encap_ici, "dest_addr", des );
   op_ici_attr_set_ptr( inet_encap_ici, "src_addr", src );
   op_ici_attr_set_int32( inet_encap_ici, "out_intf_index", 0 );
+
+  printf("HMIPv6 MN: Packet ID (%d)\n", op_pk_id(packet) );
 
   op_ici_install( inet_encap_ici );
   op_pk_send_forced( packet, OUT_STRM );

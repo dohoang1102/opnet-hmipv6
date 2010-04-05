@@ -4,7 +4,7 @@
 
 
 /* This variable carries the header into the object file */
-const char HMIPv6_MAP_pr_cpp [] = "MIL_3_Tfile_Hdr_ 145A 30A modeler 7 4BA7A114 4BA7A114 1 planet12 Student 0 0 none none 0 0 none 0 0 0 0 0 0 0 0 1e80 8                                                                                                                                                                                                                                                                                                                                                                                                         ";
+const char HMIPv6_MAP_pr_cpp [] = "MIL_3_Tfile_Hdr_ 145A 30A op_runsim 7 4BAD1270 4BAD1270 1 planet12 Student 0 0 none none 0 0 none 0 0 0 0 0 0 0 0 1e80 8                                                                                                                                                                                                                                                                                                                                                                                                       ";
 #include <string.h>
 
 
@@ -59,8 +59,6 @@ int	mobility_msg_size_in_bits [MIPV6C_MOB_MSG_COUNT] = { 64, 128, 128, 192, 192,
 
 /* Define the packet source index for the output stream */
 #define OUT_STRM  1
-
-#define MAP_ADDR "1:1:1:1"
 
 bool is_bind_update( Packet* packet );
 
@@ -191,11 +189,12 @@ enum { _op_block_origin = __LINE__ + 2};
  */
 bool is_bind_update( Packet* packet ) { 
 
+	FIN( is_bind_update( packet ) );
+
   List* list;
   IpT_Dgram_Fields* fields;
   Ipv6T_Mobility_Hdr_Info* info;
 
-	FIN( is_bind_update( packet ) );
 
   if ( correct_packet_fmt( packet ) ) {
 
@@ -227,9 +226,10 @@ bool is_bind_update( Packet* packet ) {
  */
 bool cache_has_lcoa( std::string address ) { 
 
+	FIN( cache_has_lcoa( address ) );
+
   std::map<std::string,std::string>::iterator i;
 
-	FIN( cache_has_lcoa( void ) );
 
   for( i = bind_cache.begin(); i != bind_cache.end(); i++ ) {
     if ( address.compare( i->second ) == 0 )
@@ -246,10 +246,11 @@ bool cache_has_lcoa( std::string address ) {
  */
 Packet* set_source( Packet* packet, std::string src_str ) {
 
+	FIN( set_destination( packet, src_str ) );
+
   address_t source;
   IpT_Dgram_Fields* fields;
 
-	FIN( set_destination( packet, src_str ) );
 
   source = stringToAddress( src_str );
 
@@ -273,10 +274,11 @@ Packet* set_source( Packet* packet, std::string src_str ) {
  */
 Packet* set_destination( Packet* packet, std::string dest_str ) {
 
+	FIN( set_destination( packet, dest_str ) );
+
   address_t destination;
   IpT_Dgram_Fields* fields;
 
-	FIN( set_destination( packet, dest_str ) );
 
   destination = stringToAddress( dest_str );
 
@@ -299,13 +301,13 @@ Packet* set_destination( Packet* packet, std::string dest_str ) {
  */
 address_t get_RCoA( Packet* packet ) {
   
+  FIN( get_RCoA( packet ) ); 
+
   List* list;
   address_t RCoA;
   IpT_Dgram_Fields* fields;
   Ipv6T_Mobility_Hdr_Info* info;
   std::string address;
-
-  FIN( get_RCoA( packet ) ); 
 
   fields = ip_dgram_fields_get( packet );
 
@@ -325,12 +327,13 @@ address_t get_RCoA( Packet* packet ) {
  * Send a binding acknowledgment to destination.
  */
 void send_BAck( address_t destination, address_t RCoA ) {
+  FIN( send_BAck( destination, RCoA ) ); 
+
   Packet*           packet;
   OpT_Packet_Size   ext_hdr_len;
   IpT_Dgram_Fields* dgram;
   Ipv6T_Mobility_Hdr_Info*  header;
 
-  FIN( send_BAck( destination ) ); 
   
   /* Create the IP datagram. */
   packet = ip_dgram_create();
@@ -394,7 +397,6 @@ void send_BAck( address_t destination, address_t RCoA ) {
   op_ici_install( inet_encap_ici );
   op_pk_send_forced( packet, OUT_STRM );
   op_ici_install( OPC_NIL );
-
 
   FOUT;
 } 
@@ -496,9 +498,6 @@ HMIPv6_MAP_state::HMIPv6_MAP (OP_SIM_CONTEXT_ARG_OPT)
 				**  - procHndl
 				*/
 				
-				
-				
-				
 				/* Get self id and our parent's id */
 				selfId   = op_id_self();
 				parentId = op_topo_parent( selfId );
@@ -546,14 +545,7 @@ HMIPv6_MAP_state::HMIPv6_MAP (OP_SIM_CONTEXT_ARG_OPT)
 
 			/** state (idle) enter executives **/
 			FSM_STATE_ENTER_UNFORCED (1, "idle", state1_enter_exec, "HMIPv6_MAP [idle enter execs]")
-
-			/** blocking after enter executives of unforced state. **/
-			FSM_EXIT (3,"HMIPv6_MAP")
-
-
-			/** state (idle) exit executives **/
-			FSM_STATE_EXIT_UNFORCED (1, "idle", "HMIPv6_MAP [idle exit execs]")
-				FSM_PROFILE_SECTION_IN ("HMIPv6_MAP [idle exit execs]", state1_exit_exec)
+				FSM_PROFILE_SECTION_IN ("HMIPv6_MAP [idle enter execs]", state1_enter_exec)
 				{
 				/*
 				** Sate Variables:
@@ -597,7 +589,14 @@ HMIPv6_MAP_state::HMIPv6_MAP (OP_SIM_CONTEXT_ARG_OPT)
 				    }
 				}
 				}
-				FSM_PROFILE_SECTION_OUT (state1_exit_exec)
+				FSM_PROFILE_SECTION_OUT (state1_enter_exec)
+
+			/** blocking after enter executives of unforced state. **/
+			FSM_EXIT (3,"HMIPv6_MAP")
+
+
+			/** state (idle) exit executives **/
+			FSM_STATE_EXIT_UNFORCED (1, "idle", "HMIPv6_MAP [idle exit execs]")
 
 
 			/** state (idle) transition processing **/

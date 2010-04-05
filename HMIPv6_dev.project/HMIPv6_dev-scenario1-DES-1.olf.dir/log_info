@@ -1,7 +1,7 @@
 
 [Log Info:]
 version :	1
-row_count :	9
+row_count :	41
 max_log_row :	5000
 max_file_row :	1000
 hide_date :	TRUE
@@ -9,7 +9,7 @@ include_severity :	TRUE
 file_count :	1
 
 [File List:]
-2884_03-19-2010_21.55.36	9	21:55:52 Mar 19 2010	13:45:30 Mar 22 2010
+5540_03-24-2010_18.32.19	41	18:32:27 Mar 24 2010	18:32:34 Mar 24 2010
 
 [Column Dependency List:]
 dependency_count :	1
@@ -18,6 +18,30 @@ dependency_count :	1
 
 [Summary]
 
+
+log_handle_column_count :	3
+5	Category	2	Configuration
+6	Class	2	ATM
+7	SubClass	2	Bkgrnd Traffic
+incident_count :	0
+
+log_handle_column_count :	3
+5	Category	2	Configuration
+6	Class	2	ATM
+7	SubClass	2	Call Setup
+incident_count :	0
+
+log_handle_column_count :	3
+5	Category	2	Configuration
+6	Class	2	ATM
+7	SubClass	2	Feedback
+incident_count :	0
+
+log_handle_column_count :	3
+5	Category	2	Configuration
+6	Class	2	ATM
+7	SubClass	2	Setup
+incident_count :	0
 
 log_handle_column_count :	3
 5	Category	2	Configuration
@@ -51,6 +75,12 @@ incident_count :	0
 
 log_handle_column_count :	3
 5	Category	2	Configuration
+6	Class	2	Ethernet
+7	SubClass	2	Model Configuration
+incident_count :	0
+
+log_handle_column_count :	3
+5	Category	2	Configuration
 6	Class	2	IGMP Host
 7	SubClass	2	Model_Configuration_Warning
 incident_count :	0
@@ -65,7 +95,7 @@ log_handle_column_count :	3
 5	Category	2	Configuration
 6	Class	2	IP
 7	SubClass	2	Model_Configuration_Warning
-incident_count :	4
+incident_count :	13
 
 log_handle_column_count :	3
 5	Category	2	Configuration
@@ -293,7 +323,7 @@ log_handle_column_count :	3
 5	Category	2	Low-Level
 6	Class	2	Simulation
 7	SubClass	2	Message
-incident_count :	0
+incident_count :	24
 
 log_handle_column_count :	3
 5	Category	2	Low-Level
@@ -321,6 +351,36 @@ incident_count :	0
 
 log_handle_column_count :	3
 5	Category	2	Protocol
+6	Class	2	ATM
+7	SubClass	2	 Buffer Cell Loss
+incident_count :	0
+
+log_handle_column_count :	3
+5	Category	2	Protocol
+6	Class	2	ATM
+7	SubClass	2	 UPC Cell Loss
+incident_count :	0
+
+log_handle_column_count :	3
+5	Category	2	Protocol
+6	Class	2	ATM
+7	SubClass	2	Call_Admission
+incident_count :	0
+
+log_handle_column_count :	3
+5	Category	2	Protocol
+6	Class	2	ATM
+7	SubClass	2	Cell Loss
+incident_count :	0
+
+log_handle_column_count :	3
+5	Category	2	Protocol
+6	Class	2	ATM
+7	SubClass	2	SSCOP
+incident_count :	0
+
+log_handle_column_count :	3
+5	Category	2	Protocol
 6	Class	2	Application
 7	SubClass	2	Cli-Svr
 incident_count :	0
@@ -335,6 +395,12 @@ log_handle_column_count :	3
 5	Category	2	Protocol
 6	Class	2	BGP
 7	SubClass	2	Protocol_Warning
+incident_count :	0
+
+log_handle_column_count :	3
+5	Category	2	Protocol
+6	Class	2	Ethernet
+7	SubClass	2	Packet Drop
 incident_count :	0
 
 log_handle_column_count :	3
@@ -425,12 +491,24 @@ log_handle_column_count :	3
 5	Category	2	Protocol
 6	Class	2	UDP
 7	SubClass	2	Packet Drop
-incident_count :	1
+incident_count :	0
 
 log_handle_column_count :	3
 5	Category	2	Protocol
 6	Class	2	Wireless LAN
 7	SubClass	2	Data packet Drop
+incident_count :	0
+
+log_handle_column_count :	3
+5	Category	2	Results
+6	Class	2	ATM
+7	SubClass	2	Bkgrnd Util
+incident_count :	0
+
+log_handle_column_count :	3
+5	Category	2	Results
+6	Class	2	ATM
+7	SubClass	2	No_Results
 incident_count :	0
 
 log_handle_column_count :	3
@@ -455,6 +533,12 @@ log_handle_column_count :	3
 5	Category	2	Results
 6	Class	2	BGP
 7	SubClass	2	Unexpected_Results
+incident_count :	0
+
+log_handle_column_count :	3
+5	Category	2	Results
+6	Class	2	Ethernet
+7	SubClass	2	Performance
 incident_count :	0
 
 log_handle_column_count :	3

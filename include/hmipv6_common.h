@@ -30,6 +30,8 @@
 #include <mobile_ip_support.h>
 #include <string>
 
+#define MAP_ADDR "2001:200::1"
+
 /**
  * Make sure the given packet is the correct format
  */

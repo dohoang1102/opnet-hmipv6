@@ -4,7 +4,7 @@
 
 
 /* This variable carries the header into the object file */
-const char HMIPv6_MAP_AD_GEN_pr_cpp [] = "MIL_3_Tfile_Hdr_ 145A 30A modeler 7 4BA7A117 4BA7A117 1 planet12 Student 0 0 none none 0 0 none 0 0 0 0 0 0 0 0 1e80 8                                                                                                                                                                                                                                                                                                                                                                                                         ";
+const char HMIPv6_MAP_AD_GEN_pr_cpp [] = "MIL_3_Tfile_Hdr_ 145A 30A modeler 7 4BB38163 4BB38163 1 planet12 Student 0 0 none none 0 0 none 0 0 0 0 0 0 0 0 1e80 8                                                                                                                                                                                                                                                                                                                                                                                                         ";
 #include <string.h>
 
 
@@ -20,6 +20,7 @@ const char HMIPv6_MAP_AD_GEN_pr_cpp [] = "MIL_3_Tfile_Hdr_ 145A 30A modeler 7 4B
 #include <hmipv6_defs.h>
 #include <hmipv6_defs.h>
 #include <hmipv6_support.h>
+#include <hmipv6_common.h>
 #include <ip_rte_v4.h>
 #include <ip_rte_support.h>
 #include <ipv6_extension_headers_defs.h>
@@ -30,12 +31,12 @@ const char HMIPv6_MAP_AD_GEN_pr_cpp [] = "MIL_3_Tfile_Hdr_ 145A 30A modeler 7 4B
 #include <ip_icmp_pk.h>
 #include <mobile_ip_support.h>
 
-extern int mobility_msg_size_in_bits[MIPV6C_MOB_MSG_COUNT];
+#define MSG_SIZE 64
 
 #define TIMER_INTERRUPT 99
 
 /* How often to create packets in seconds */
-#define TIME_LIMIT 	100.0
+#define TIME_LIMIT 	5000.0
 
 #define CAN_SEND ((op_intrpt_type() == OPC_INTRPT_SELF) && (op_intrpt_code() == TIMER_INTERRUPT))
 
@@ -197,7 +198,6 @@ HMIPv6_MAP_AD_GEN_state::HMIPv6_MAP_AD_GEN (OP_SIM_CONTEXT_ARG_OPT)
 				**   If not an AP, destroy this module.
 				**   else, continue.
 				*/
-				puts(" What's up from MAP AD!" );
 				
 				Objid parentid = op_topo_parent(op_id_self());
 				Prohandle pro = op_pro_self();
@@ -244,13 +244,15 @@ HMIPv6_MAP_AD_GEN_state::HMIPv6_MAP_AD_GEN (OP_SIM_CONTEXT_ARG_OPT)
 				} else {
 				
 				  disabled = false;
-					printf( "HMIPv6 MAP AD: Starting HMIPv6 MN Advertiser in %s\n", name ); 
+					printf( "HMIPv6 MAP AD: Initialized \n" ); 
 				  op_intrpt_schedule_self( op_sim_time() + TIME_LIMIT, TIMER_INTERRUPT ); 
 				
 				  ipv6_extension_header_package_init();
 				
 				  int protoNum = IpC_Protocol_HMIPv6;
 					Inet_Higher_Layer_Protocol_Register( "ip-ip (HMIPv6)", &protoNum );
+				
+				  map_address = inet_address_create( MAP_ADDR, InetC_Addr_Family_v6 );
 				
 				  net_ici = op_ici_create( "inet_encap_req" );
 				  op_ici_attr_set( net_ici, "connection_class", CONNECTION_CLASS_1 );
@@ -322,7 +324,7 @@ HMIPv6_MAP_AD_GEN_state::HMIPv6_MAP_AD_GEN (OP_SIM_CONTEXT_ARG_OPT)
 				packet = ip_dgram_create();
 				
 				/* Get the size contributed by the mobility header. */
-				ext_hdr_len = (OpT_Packet_Size) mobility_msg_size_in_bits[BIND_ACK];
+				ext_hdr_len = (OpT_Packet_Size) MSG_SIZE;
 				
 				Objid module = op_topo_parent( op_id_self() );
 				
@@ -348,7 +350,6 @@ HMIPv6_MAP_AD_GEN_state::HMIPv6_MAP_AD_GEN (OP_SIM_CONTEXT_ARG_OPT)
 				
 				/* The protocol field (next header in IPv6) must    */
 				/* indicate that this is a mobility extension header. */
-				//dgram->protocol = IpC_Procotol_Mobility_Ext_Hdr;
 				dgram->protocol = IpC_Protocol_HMIPv6;
 				
 				/* 
@@ -383,19 +384,20 @@ HMIPv6_MAP_AD_GEN_state::HMIPv6_MAP_AD_GEN (OP_SIM_CONTEXT_ARG_OPT)
 				
 				// Install ICI 
 				// Deliver this IPv6 datagram to the IP_encap module.
-				// op_pk_encap_flag_set( packet, 1 );
+				op_pk_encap_flag_set( packet, 1 );
 				InetT_Address* dest = inet_address_copy_dynamic( &IPv6C_ALL_NODES_LL_MCAST_ADDR );
 				InetT_Address* src = inet_address_copy_dynamic( &(dgram->src_addr) );
 				op_ici_attr_set_ptr( net_ici, "dest_addr", dest );
 				op_ici_attr_set_ptr( net_ici, "src_addr", src );
-				op_ici_attr_set_int32( net_ici, "out_intf_index", 0 );
-				op_ici_attr_set_int32( net_ici, "multicast_major_port", 0 );
+				op_ici_attr_set_int32( net_ici, "out_intf_index", 1 );
+				op_ici_attr_set_int32( net_ici, "multicast_major_port", 1 );
+				op_ici_attr_set_int32( net_ici, "multicast_minor_port", 1 );
 				
 				op_ici_install( net_ici );
 				op_pk_send_forced( packet, OUT_STRM );
 				op_ici_install( OPC_NIL );
 				
-				//printf( "HMIPv6 MAP AD: Sending packet!\n" );
+				printf( "HMIPv6 MAP AD: Sending packet!\n" );
 				}
 				FSM_PROFILE_SECTION_OUT (state2_enter_exec)
 
